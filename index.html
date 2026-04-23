@@ -2,104 +2,209 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>⚽ TacticBoard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --panel:#0f1923;--panel2:#162330;--panel3:#1e2f42;
-  --accent:#f9c74f;--accent2:#f3722c;--red:#e63946;--blue:#4cc9f0;
+  --accent:#f9c74f;--accent2:#f3722c;--red:#e63946;--blue:#4cc9f0;--tbd:#a78bfa;
   --text:#e8edf2;--text-dim:#8fa3b8;--text-muted:#4a6174;
-  --border:rgba(255,255,255,0.08);--radius:10px;
+  --border:rgba(255,255,255,0.08);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
 }
-body{font-family:'Pretendard',sans-serif;background:#0b1520;color:var(--text);min-height:100vh;overflow-x:hidden}
-.app{display:grid;grid-template-columns:260px 1fr 260px;grid-template-rows:60px 1fr;height:100vh}
-.topbar{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:10}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);flex-shrink:0}
+html,body{height:100%;overflow:hidden;touch-action:manipulation}
+body{font-family:'Pretendard',sans-serif;background:#0b1520;color:var(--text)}
+
+/* ── DESKTOP LAYOUT ── */
+.app{display:grid;grid-template-columns:270px 1fr 270px;grid-template-rows:56px 1fr;height:100vh}
+.topbar{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;z-index:20;padding-top:var(--safe-top)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--accent);flex-shrink:0}
 .logo span{color:var(--text-muted)}
-.tab-nav{display:flex;gap:4px;margin-left:auto}
-.tab-btn{background:transparent;border:1px solid transparent;color:var(--text-dim);padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s}
-.tab-btn.active{background:var(--accent);color:#0b1520;border-color:var(--accent)}
-.tab-btn:hover:not(.active){background:var(--panel3);color:var(--text)}
-.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:var(--panel3);border:1px solid var(--border)}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:background .3s}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);padding:4px 8px;border-radius:6px;background:var(--panel3);border:1px solid var(--border);white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:background .3s;flex-shrink:0}
 .sync-dot.live{background:#06d6a0;box-shadow:0 0 6px #06d6a088;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.left-panel{background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
-.right-panel{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:16px}
+.tab-nav{display:flex;gap:4px;margin-left:auto}
+.tab-btn{background:transparent;border:1px solid transparent;color:var(--text-dim);padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:var(--accent);color:#0b1520}
+.tab-btn:hover:not(.active){background:var(--panel3);color:var(--text)}
+.left-panel,.right-panel{background:var(--panel);overflow-y:auto;padding:14px}
+.left-panel{border-right:1px solid var(--border)}
+.right-panel{border-left:1px solid var(--border)}
 .center{background:#0b1520;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.panel-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.section{margin-bottom:20px}
-.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .15s}
-.btn-accent{background:var(--accent);color:#0b1520}.btn-accent:hover{background:#f7d46a}
-.btn-ghost{background:var(--panel3);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:var(--panel2)}
-.btn-danger{background:rgba(230,57,70,0.15);color:var(--red);border:1px solid rgba(230,57,70,0.3)}.btn-danger:hover{background:rgba(230,57,70,0.25)}
-.btn-sm{padding:5px 10px;font-size:12px;width:auto}
-input,select,textarea{background:var(--panel3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;width:100%;outline:none;transition:border .2s}
+
+/* ── MOBILE LAYOUT ── */
+.mob-bottomnav{display:none}
+.mob-panel{display:none}
+
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;grid-template-rows:56px 1fr;height:100dvh}
+  .topbar{padding:0 14px;padding-top:var(--safe-top)}
+  .logo{font-size:20px}
+  .tab-nav{display:none}
+  .left-panel,.right-panel{display:none}
+
+  /* field fills center */
+  .center{align-items:flex-start;padding-top:8px;overflow-y:auto}
+
+  /* bottom nav */
+  .mob-bottomnav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:var(--panel);border-top:1px solid var(--border);
+    padding:8px 0;padding-bottom:calc(8px + var(--safe-bottom));
+    z-index:50;justify-content:space-around;
+  }
+  .mob-nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;padding:4px 12px;border-radius:8px;transition:color .2s;min-width:60px}
+  .mob-nav-btn .nav-icon{font-size:20px;line-height:1}
+  .mob-nav-btn.active{color:var(--accent)}
+
+  /* slide-up panel */
+  .mob-panel{
+    display:block;position:fixed;bottom:0;left:0;right:0;
+    background:var(--panel);border-top:1px solid var(--border);border-radius:20px 20px 0 0;
+    z-index:40;transform:translateY(100%);transition:transform .32s cubic-bezier(.32,1,.45,1);
+    max-height:75dvh;overflow-y:auto;
+    padding:0 16px calc(80px + var(--safe-bottom)) 16px;
+  }
+  .mob-panel.open{transform:translateY(0)}
+  .mob-panel-handle{width:36px;height:4px;background:var(--panel3);border-radius:2px;margin:12px auto 16px}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:35;backdrop-filter:blur(2px)}
+  .mob-overlay.show{display:block}
+
+  /* field sizing on mobile */
+  .field-wrap{width:min(92vw, 360px) !important;height:auto !important;aspect-ratio:380/560}
+  #tactic-canvas{width:100% !important;height:100% !important}
+}
+
+/* ── SHARED COMPONENTS ── */
+.panel-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.section{margin-bottom:18px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;border-radius:9px;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .15s;touch-action:manipulation}
+.btn-accent{background:var(--accent);color:#0b1520}.btn-accent:active{background:#f7d46a;transform:scale(.97)}
+.btn-ghost{background:var(--panel3);color:var(--text);border:1px solid var(--border)}.btn-ghost:active{transform:scale(.97)}
+.btn-danger{background:rgba(230,57,70,0.15);color:var(--red);border:1px solid rgba(230,57,70,0.3)}.btn-danger:active{transform:scale(.97)}
+.btn-sm{padding:6px 12px;font-size:12px;width:auto}
+.btn-tbd{background:rgba(167,139,250,0.15);color:var(--tbd);border:1px solid rgba(167,139,250,0.3)}
+input,select,textarea{background:var(--panel3);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:14px;width:100%;outline:none;transition:border .2s;-webkit-appearance:none;appearance:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 select option{background:var(--panel)}
 .row{display:flex;gap:8px;margin-bottom:8px}
 .row input,.row select{margin-bottom:0}
 label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-weight:500}
-.player-card{background:var(--panel3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:grab;transition:all .2s;position:relative}
-.player-card:hover{border-color:rgba(255,255,255,0.2)}
+.check-label{display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px;padding:10px;background:var(--panel3);border-radius:9px;border:1px solid var(--border)}
+.check-label input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent2);flex-shrink:0;cursor:pointer}
+.check-label span{font-size:13px;color:var(--text-dim)}
+
+/* ── PLAYER CARDS ── */
+.player-card{background:var(--panel3);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:all .2s;position:relative;cursor:grab}
+.player-card:active{transform:scale(.98)}
 .player-card.mercenary{border-left:3px solid var(--accent2)}
-.player-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.player-card.tbd-card{border-left:3px solid var(--tbd)}
+.player-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
 .player-info{flex:1;min-width:0}
 .player-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player-pos{font-size:11px;color:var(--text-muted)}
 .player-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);min-width:20px;text-align:center}
-.merc-badge{font-size:9px;background:var(--accent2);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700}
-.card-actions{display:flex;gap:4px;opacity:0;transition:opacity .2s}
-.player-card:hover .card-actions{opacity:1}
-.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px 4px;border-radius:4px;font-size:13px;transition:color .2s}
-.icon-btn:hover{color:var(--text)}.icon-btn.del:hover{color:var(--red)}
+.badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;display:inline-block}
+.badge-merc{background:var(--accent2);color:#fff}
+.badge-tbd{background:var(--tbd);color:#fff}
+.card-actions{display:flex;gap:4px;flex-shrink:0}
+@media(min-width:769px){.card-actions{opacity:0;transition:opacity .2s}.player-card:hover .card-actions{opacity:1}}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px 6px;border-radius:4px;font-size:14px;transition:color .2s;touch-action:manipulation}
+.icon-btn:hover,.icon-btn:active{color:var(--text)}.icon-btn.del:hover,.icon-btn.del:active{color:var(--red)}
+
+/* ── FORMATION GRID ── */
 .formation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
-.f-btn{background:var(--panel3);border:1px solid var(--border);color:var(--text-dim);padding:7px 4px;border-radius:7px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:15px;text-align:center;transition:all .2s}
-.f-btn:hover{border-color:var(--accent);color:var(--accent)}
+.f-btn{background:var(--panel3);border:1px solid var(--border);color:var(--text-dim);padding:8px 4px;border-radius:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:15px;text-align:center;transition:all .2s;touch-action:manipulation}
 .f-btn.active{background:rgba(249,199,79,0.15);border-color:var(--accent);color:var(--accent)}
-.field-wrap{position:relative;width:380px;height:560px;user-select:none}
-.field-svg{width:100%;height:100%;border-radius:12px;overflow:hidden}
-.field-player{position:absolute;transform:translate(-50%,-50%);cursor:pointer;text-align:center;z-index:5}
-.field-player .fp-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid rgba(255,255,255,0.4);box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform .15s}
-.field-player:hover .fp-circle{transform:scale(1.12)}
-.field-player .fp-name{font-size:10px;font-weight:600;white-space:nowrap;margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,0.8);max-width:60px;overflow:hidden;text-overflow:ellipsis}
-.fp-slot{position:absolute;transform:translate(-50%,-50%);cursor:pointer;z-index:3}
-.fp-slot .slot-circle{width:36px;height:36px;border-radius:50%;border:2px dashed rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,0.2);transition:all .2s}
-.fp-slot:hover .slot-circle{border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.5)}
-.fp-slot.over .slot-circle{border-color:var(--accent);color:var(--accent);background:rgba(249,199,79,0.1)}
-.history-item{background:var(--panel3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .2s}
-.history-item:hover{border-color:rgba(255,255,255,0.2)}
+
+/* ── FIELD ── */
+.field-wrap{position:relative;width:380px;height:560px;user-select:none;flex-shrink:0}
+.field-svg{width:100%;height:100%;border-radius:12px;overflow:hidden;display:block}
+.field-player{position:absolute;transform:translate(-50%,-50%);cursor:pointer;text-align:center;z-index:5;touch-action:manipulation}
+.field-player .fp-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.4);box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform .15s}
+.field-player:active .fp-circle{transform:scale(1.1)}
+.field-player .fp-name{font-size:10px;font-weight:600;white-space:nowrap;margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,0.9);max-width:64px;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.fp-slot{position:absolute;transform:translate(-50%,-50%);cursor:pointer;z-index:3;touch-action:manipulation}
+.fp-slot .slot-circle{width:38px;height:38px;border-radius:50%;border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,0.15);transition:all .2s}
+.fp-slot.over .slot-circle,.fp-slot:active .slot-circle{border-color:var(--accent);color:var(--accent);background:rgba(249,199,79,0.1)}
+.fp-slot .slot-pos{font-size:9px;color:rgba(255,255,255,0.25);text-align:center;margin-top:2px;letter-spacing:.5px}
+
+/* ── TACTIC TOOLS (mobile) ── */
+.tactic-tools{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tool-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel3);color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .2s;touch-action:manipulation}
+.tool-btn.active{background:rgba(249,199,79,0.15);border-color:var(--accent);color:var(--accent)}
+
+/* mobile tactic floating toolbar */
+.tactic-float{display:none}
+@media(max-width:768px){
+  .tactic-float{
+    display:flex;position:fixed;top:calc(56px + var(--safe-top) + 8px);left:50%;transform:translateX(-50%);
+    gap:6px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:6px 8px;
+  }
+  .tactic-float.hidden{display:none}
+  .tf-btn{background:var(--panel3);border:1px solid var(--border);color:var(--text-dim);padding:7px 10px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;touch-action:manipulation;white-space:nowrap}
+  .tf-btn.active{background:rgba(249,199,79,0.2);border-color:var(--accent);color:var(--accent)}
+}
+
+/* ── HISTORY ── */
+.history-item{background:var(--panel3);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .2s;touch-action:manipulation}
 .history-item.active{border-color:var(--accent);background:rgba(249,199,79,0.05)}
 .hist-date{font-size:11px;color:var(--text-muted)}
 .hist-title{font-size:13px;font-weight:600}
 .hist-form{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent)}
-.hist-actions{display:flex;gap:4px;margin-top:6px}
-.tactic-tools{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tool-btn{padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--panel3);color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;transition:all .2s}
-.tool-btn.active{background:rgba(249,199,79,0.15);border-color:var(--accent);color:var(--accent)}
-.tool-btn:hover:not(.active){color:var(--text)}
-.arrow-list{max-height:160px;overflow-y:auto}
-.arrow-item{background:var(--panel3);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:5px;display:flex;align-items:center;gap:8px;font-size:12px}
+.hist-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+/* ── ARROW LIST ── */
+.arrow-list{max-height:150px;overflow-y:auto}
+.arrow-item{background:var(--panel3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;display:flex;align-items:center;gap:8px;font-size:12px}
 .arrow-color{width:14px;height:14px;border-radius:3px;flex-shrink:0}
-.move-type-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.move-type-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px)}
+@media(min-width:769px){.modal-bg{align-items:center}}
 .modal-bg.show{opacity:1;pointer-events:all}
-.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;width:360px;max-width:90vw}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + var(--safe-bottom)) 20px;width:100%;max-width:480px;transform:translateY(40px);transition:transform .25s}
+@media(min-width:769px){.modal{border-radius:16px;max-width:380px;transform:translateY(0) scale(.96)}}
+.modal-bg.show .modal{transform:translateY(0) scale(1)}
+.modal-handle{width:36px;height:4px;background:var(--panel3);border-radius:2px;margin:0 auto 16px}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:16px}
 .modal-footer{display:flex;gap:8px;margin-top:16px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel3);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:500;z-index:200;transition:transform .3s,opacity .3s;opacity:0}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(76px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel3);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:500;z-index:200;transition:transform .3s,opacity .3s;opacity:0;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-#tactic-canvas{position:absolute;top:0;left:0;width:380px;height:560px;pointer-events:none;z-index:8;border-radius:12px}
-.tactic-mode #tactic-canvas{pointer-events:all}
-.view{display:none}.view.active{display:block}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:2px}
+@media(min-width:769px){.toast{bottom:24px}}
+
+/* ── CANVAS ── */
+#tactic-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:8;border-radius:12px}
+.tactic-mode #tactic-canvas{pointer-events:all;cursor:crosshair}
+
+/* ── LOADING ── */
 .loading-overlay{position:fixed;inset:0;background:#0b1520;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.loading-logo{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:4px;color:var(--accent)}
-.loading-spinner{width:32px;height:32px;border:3px solid var(--panel3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.loading-logo{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:4px;color:var(--accent)}
+.loading-spinner{width:30px;height:30px;border:3px solid var(--panel3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.view{display:none}.view.active{display:block}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:2px}
+
+/* ── POS SECTION ── */
+.pos-section-title{font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:10px 0 6px;padding-left:2px}
+
+/* ── UNASSIGNED SECTION ── */
+.unassigned-banner{background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:9px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.unassigned-count{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--tbd)}
+.unassigned-label{font-size:12px;color:var(--text-dim)}
 </style>
 </head>
 <body>
@@ -111,12 +216,26 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
   <div style="font-size:13px;color:var(--text-muted)">서버 연결 중...</div>
 </div>
 
+<!-- MOBILE OVERLAY -->
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobPanel()"></div>
+
+<!-- MOBILE TACTIC FLOAT TOOLBAR -->
+<div class="tactic-float hidden" id="tactic-float">
+  <button class="tf-btn active" id="tf-run" onclick="setTool('run')">🏃침투</button>
+  <button class="tf-btn" id="tf-pass" onclick="setTool('pass')">⚡패스</button>
+  <button class="tf-btn" id="tf-support" onclick="setTool('support')">🔄지원</button>
+  <button class="tf-btn" id="tf-press" onclick="setTool('press')">⚠️압박</button>
+  <button class="tf-btn" id="tf-erase" onclick="setTool('erase')">🗑</button>
+  <button class="tf-btn" onclick="clearArrows()" style="color:var(--red)">전체삭제</button>
+</div>
+
 <div class="app" id="app" style="opacity:0;transition:opacity .4s">
+  <!-- TOPBAR -->
   <div class="topbar">
     <div class="logo">⚽ TACTIC<span>BOARD</span></div>
     <div class="sync-badge">
       <div class="sync-dot" id="sync-dot"></div>
-      <span id="sync-label">연결 중</span>
+      <span id="sync-label" style="display:none" class="desktop-only">연결 중</span>
     </div>
     <div class="tab-nav">
       <button class="tab-btn active" onclick="switchView('formation')">📋 포메이션</button>
@@ -125,17 +244,18 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
     </div>
   </div>
 
-  <!-- LEFT -->
+  <!-- LEFT PANEL (desktop) -->
   <div class="left-panel">
     <div class="view active" id="view-formation-left">
       <div class="section">
         <div class="panel-title">선수 등록</div>
         <div class="row">
-          <input id="inp-num" type="number" placeholder="번호" style="width:70px" min="1" max="99">
-          <input id="inp-name" type="text" placeholder="이름">
+          <input id="inp-num" type="number" placeholder="번호" style="width:70px" min="1" max="99" inputmode="numeric">
+          <input id="inp-name" type="text" placeholder="이름" autocomplete="off">
         </div>
-        <div class="row">
+        <div style="margin-bottom:8px">
           <select id="inp-pos">
+            <option value="TBD">⬜ 미정 (TBD)</option>
             <option value="GK">GK — 골키퍼</option><option value="CB">CB — 센터백</option>
             <option value="LB">LB — 왼쪽 수비</option><option value="RB">RB — 오른쪽 수비</option>
             <option value="CDM">CDM — 수비형 미드</option><option value="CM">CM — 센터 미드</option>
@@ -145,9 +265,9 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
             <option value="ST">ST — 스트라이커</option>
           </select>
         </div>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px">
-          <input type="checkbox" id="inp-merc" style="width:auto;accent-color:var(--accent2)">
-          <span style="font-size:12px;color:var(--text-dim)">용병 (Mercenary)</span>
+        <label class="check-label">
+          <input type="checkbox" id="inp-merc">
+          <span>용병 (Mercenary) 🟠</span>
         </label>
         <button class="btn btn-accent" onclick="addPlayer()">+ 선수 추가</button>
       </div>
@@ -156,7 +276,6 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
         <div id="player-list"></div>
       </div>
     </div>
-
     <div class="view" id="view-tactics-left">
       <div class="section">
         <div class="panel-title">그리기 도구</div>
@@ -179,7 +298,6 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
         <div id="arrow-list" class="arrow-list"></div>
       </div>
     </div>
-
     <div class="view" id="view-history-left">
       <div class="section">
         <div class="panel-title">새 기록 저장</div>
@@ -195,7 +313,7 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
     </div>
   </div>
 
-  <!-- CENTER -->
+  <!-- CENTER: FIELD -->
   <div class="center" id="center-area">
     <div class="field-wrap" id="field-wrap">
       <svg class="field-svg" viewBox="0 0 380 560" id="field-svg">
@@ -204,30 +322,30 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
             <rect width="20" height="20" fill="#1e5c38"/>
             <rect width="10" height="20" fill="#185030"/>
           </pattern>
-          <marker id="arrowRun" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f9c74f"/></marker>
-          <marker id="arrowPass" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4cc9f0"/></marker>
-          <marker id="arrowSupport" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#80ffdb"/></marker>
-          <marker id="arrowPress" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e63946"/></marker>
+          <marker id="arrowRun" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f9c74f"/></marker>
+          <marker id="arrowPass" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4cc9f0"/></marker>
+          <marker id="arrowSupport" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#80ffdb"/></marker>
+          <marker id="arrowPress" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e63946"/></marker>
         </defs>
         <rect width="380" height="560" fill="url(#grass)" rx="10"/>
-        <rect x="20" y="20" width="340" height="520" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" rx="2"/>
-        <line x1="20" y1="280" x2="360" y2="280" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <circle cx="190" cy="280" r="50" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <circle cx="190" cy="280" r="3" fill="rgba(255,255,255,0.7)"/>
-        <rect x="90" y="20" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <rect x="140" y="20" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <circle cx="190" cy="75" r="3" fill="rgba(255,255,255,0.7)"/>
-        <path d="M140 110 A50 50 0 0 1 240 110" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <rect x="90" y="450" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <rect x="140" y="500" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <circle cx="190" cy="487" r="3" fill="rgba(255,255,255,0.7)"/>
-        <path d="M140 450 A50 50 0 0 0 240 450" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <rect x="160" y="14" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <rect x="160" y="536" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <path d="M20 30 A10 10 0 0 1 30 20" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <path d="M350 20 A10 10 0 0 1 360 30" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <path d="M360 530 A10 10 0 0 1 350 540" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
-        <path d="M30 540 A10 10 0 0 1 20 530" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="20" y="20" width="340" height="520" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" rx="2"/>
+        <line x1="20" y1="280" x2="360" y2="280" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <circle cx="190" cy="280" r="50" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <circle cx="190" cy="280" r="3" fill="rgba(255,255,255,0.65)"/>
+        <rect x="90" y="20" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <rect x="140" y="20" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <circle cx="190" cy="75" r="3" fill="rgba(255,255,255,0.65)"/>
+        <path d="M140 110 A50 50 0 0 1 240 110" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <rect x="90" y="450" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <rect x="140" y="500" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <circle cx="190" cy="487" r="3" fill="rgba(255,255,255,0.65)"/>
+        <path d="M140 450 A50 50 0 0 0 240 450" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <rect x="160" y="14" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <rect x="160" y="536" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <path d="M20 30 A10 10 0 0 1 30 20" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <path d="M350 20 A10 10 0 0 1 360 30" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <path d="M360 530 A10 10 0 0 1 350 540" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
+        <path d="M30 540 A10 10 0 0 1 20 530" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2"/>
         <g id="arrows-layer"></g>
       </svg>
       <canvas id="tactic-canvas" width="380" height="560"></canvas>
@@ -236,12 +354,12 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
     </div>
   </div>
 
-  <!-- RIGHT -->
+  <!-- RIGHT PANEL (desktop) -->
   <div class="right-panel">
     <div class="view active" id="view-formation-right">
       <div class="section">
         <div class="panel-title">포메이션</div>
-        <div class="formation-grid">
+        <div class="formation-grid" id="formation-grid-desktop">
           <button class="f-btn active" onclick="setFormation('4-3-3')">4-3-3</button>
           <button class="f-btn" onclick="setFormation('4-4-2')">4-4-2</button>
           <button class="f-btn" onclick="setFormation('4-2-3-1')">4-2-3-1</button>
@@ -257,23 +375,21 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
       </div>
       <div class="section">
         <div class="panel-title">배치된 선수</div>
-        <div id="placed-list" style="font-size:12px;color:var(--text-dim)">슬롯에 선수를 배치하세요.</div>
+        <div id="placed-list" style="font-size:12px;color:var(--text-dim)">슬롯에 배치하세요.</div>
       </div>
       <div class="section">
         <div class="panel-title">팀 컬러</div>
         <div style="display:flex;gap:8px">
-          <div style="flex:1"><label>팀 색상</label><input type="color" id="team-color" value="#e63946" style="height:36px;cursor:pointer;border-radius:8px;padding:2px"></div>
-          <div style="flex:1"><label>GK 색상</label><input type="color" id="gk-color" value="#f9c74f" style="height:36px;cursor:pointer;border-radius:8px;padding:2px"></div>
+          <div style="flex:1"><label>팀 색상</label><input type="color" id="team-color" value="#e63946" style="height:38px;cursor:pointer;padding:2px"></div>
+          <div style="flex:1"><label>GK 색상</label><input type="color" id="gk-color" value="#f9c74f" style="height:38px;cursor:pointer;padding:2px"></div>
         </div>
       </div>
     </div>
-
     <div class="view" id="view-tactics-right">
       <div class="section">
         <div class="panel-title">전술 안내</div>
-        <div style="font-size:12px;color:var(--text-dim);line-height:1.8;background:var(--panel3);border-radius:8px;padding:12px;border:1px solid var(--border)">
-          <div style="margin-bottom:8px;font-weight:600;color:var(--text)">사용 방법</div>
-          ① 도구 선택<br>② 필드에서 드래그<br>③ 자동으로 팀원들과 공유됨<br>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.8;background:var(--panel3);border-radius:9px;padding:12px;border:1px solid var(--border)">
+          ① 도구 선택<br>② 필드에서 드래그<br>③ 자동으로 팀원과 공유
           <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
             <span style="display:inline-block;width:14px;height:3px;background:#f9c74f;margin-right:6px;vertical-align:middle"></span>침투<br>
             <span style="display:inline-block;width:14px;height:3px;background:#4cc9f0;margin-right:6px;vertical-align:middle;margin-top:4px"></span>패스<br>
@@ -284,10 +400,9 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
       </div>
       <div class="section">
         <div class="panel-title">전술 메모</div>
-        <textarea id="tactic-memo" placeholder="전술 설명을 입력하세요..." style="min-height:100px;resize:vertical"></textarea>
+        <textarea id="tactic-memo" placeholder="전술 설명..." style="min-height:90px;resize:vertical"></textarea>
       </div>
     </div>
-
     <div class="view" id="view-history-right">
       <div class="section">
         <div class="panel-title">기록 상세</div>
@@ -297,26 +412,115 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
   </div>
 </div>
 
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-bottomnav" id="mob-bottomnav">
+  <button class="mob-nav-btn active" id="mnav-formation" onclick="switchView('formation')">
+    <span class="nav-icon">📋</span>포메이션
+  </button>
+  <button class="mob-nav-btn" id="mnav-players" onclick="openMobPanel('players')">
+    <span class="nav-icon">👥</span>선수
+  </button>
+  <button class="mob-nav-btn" id="mnav-tactics" onclick="switchView('tactics')">
+    <span class="nav-icon">🎯</span>전술판
+  </button>
+  <button class="mob-nav-btn" id="mnav-history" onclick="switchView('history');openMobPanel('history')">
+    <span class="nav-icon">📅</span>기록
+  </button>
+  <button class="mob-nav-btn" id="mnav-settings" onclick="openMobPanel('settings')">
+    <span class="nav-icon">⚙️</span>설정
+  </button>
+</nav>
+
+<!-- MOBILE PANELS -->
+<!-- Players panel -->
+<div class="mob-panel" id="mob-panel-players">
+  <div class="mob-panel-handle"></div>
+  <div class="panel-title">선수 등록</div>
+  <div class="row" style="margin-bottom:8px">
+    <input id="m-inp-num" type="number" placeholder="번호" style="width:72px" min="1" max="99" inputmode="numeric">
+    <input id="m-inp-name" type="text" placeholder="이름" autocomplete="off">
+  </div>
+  <div style="margin-bottom:8px">
+    <select id="m-inp-pos">
+      <option value="TBD">⬜ 미정 (TBD)</option>
+      <option value="GK">GK — 골키퍼</option><option value="CB">CB — 센터백</option>
+      <option value="LB">LB — 왼쪽 수비</option><option value="RB">RB — 오른쪽 수비</option>
+      <option value="CDM">CDM — 수비형 미드</option><option value="CM">CM — 센터 미드</option>
+      <option value="CAM">CAM — 공격형 미드</option><option value="LM">LM — 왼쪽 미드</option>
+      <option value="RM">RM — 오른쪽 미드</option><option value="LW">LW — 왼쪽 윙</option>
+      <option value="RW">RW — 오른쪽 윙</option><option value="CF">CF — 센터포워드</option>
+      <option value="ST">ST — 스트라이커</option>
+    </select>
+  </div>
+  <label class="check-label" style="margin-bottom:10px">
+    <input type="checkbox" id="m-inp-merc">
+    <span>용병 (Mercenary) 🟠</span>
+  </label>
+  <button class="btn btn-accent" style="margin-bottom:16px" onclick="addPlayerMobile()">+ 선수 추가</button>
+  <div class="panel-title">선수 목록 (<span id="m-player-count">0</span>명)</div>
+  <div id="m-player-list"></div>
+</div>
+
+<!-- Formation settings panel -->
+<div class="mob-panel" id="mob-panel-settings">
+  <div class="mob-panel-handle"></div>
+  <div class="panel-title">포메이션 선택</div>
+  <div class="formation-grid" id="formation-grid-mobile" style="margin-bottom:16px">
+    <button class="f-btn active" onclick="setFormation('4-3-3')">4-3-3</button>
+    <button class="f-btn" onclick="setFormation('4-4-2')">4-4-2</button>
+    <button class="f-btn" onclick="setFormation('4-2-3-1')">4-2-3-1</button>
+    <button class="f-btn" onclick="setFormation('3-5-2')">3-5-2</button>
+    <button class="f-btn" onclick="setFormation('5-3-2')">5-3-2</button>
+    <button class="f-btn" onclick="setFormation('3-4-3')">3-4-3</button>
+    <button class="f-btn" onclick="setFormation('4-1-4-1')">4-1-4-1</button>
+    <button class="f-btn" onclick="setFormation('5-4-1')">5-4-1</button>
+    <button class="f-btn" onclick="setFormation('4-3-2-1')">4-3-2-1</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn btn-ghost" onclick="clearField();closeMobPanel()" style="flex:1">🗑 배치 초기화</button>
+    <button class="btn btn-accent" onclick="autoArrange();closeMobPanel()" style="flex:1">✨ 자동 배치</button>
+  </div>
+  <div class="panel-title">팀 컬러</div>
+  <div style="display:flex;gap:10px">
+    <div style="flex:1"><label>팀 색상</label><input type="color" id="m-team-color" value="#e63946" style="height:44px;cursor:pointer;padding:2px"></div>
+    <div style="flex:1"><label>GK 색상</label><input type="color" id="m-gk-color" value="#f9c74f" style="height:44px;cursor:pointer;padding:2px"></div>
+  </div>
+</div>
+
+<!-- History panel -->
+<div class="mob-panel" id="mob-panel-history">
+  <div class="mob-panel-handle"></div>
+  <div class="panel-title">새 기록 저장</div>
+  <div style="margin-bottom:8px"><label>날짜</label><input type="date" id="m-hist-date"></div>
+  <div style="margin-bottom:8px"><label>제목</label><input type="text" id="m-hist-title-inp" placeholder="예: vs 레알마드리드 (홈)"></div>
+  <div style="margin-bottom:8px"><label>메모</label><input type="text" id="m-hist-memo" placeholder="간단한 메모"></div>
+  <button class="btn btn-accent" style="margin-bottom:16px" onclick="saveHistoryMobile()">💾 서버에 저장</button>
+  <div class="panel-title">기록 목록</div>
+  <div id="m-history-list"></div>
+</div>
+
 <!-- MODALS -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
+    <div class="mob-panel-handle" style="display:block"></div>
     <div class="modal-title">선수 수정</div>
     <input type="hidden" id="edit-id">
     <div class="row">
-      <div style="flex:0 0 70px"><label>번호</label><input id="edit-num" type="number" min="1" max="99"></div>
-      <div style="flex:1"><label>이름</label><input id="edit-name" type="text"></div>
+      <div style="flex:0 0 75px"><label>번호</label><input id="edit-num" type="number" min="1" max="99" inputmode="numeric"></div>
+      <div style="flex:1"><label>이름</label><input id="edit-name" type="text" autocomplete="off"></div>
     </div>
     <div style="margin-bottom:8px"><label>포지션</label>
       <select id="edit-pos">
+        <option value="TBD">⬜ 미정 (TBD)</option>
         <option value="GK">GK</option><option value="CB">CB</option><option value="LB">LB</option>
         <option value="RB">RB</option><option value="CDM">CDM</option><option value="CM">CM</option>
         <option value="CAM">CAM</option><option value="LM">LM</option><option value="RM">RM</option>
         <option value="LW">LW</option><option value="RW">RW</option><option value="CF">CF</option><option value="ST">ST</option>
       </select>
     </div>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:12px">
-      <input type="checkbox" id="edit-merc" style="width:auto;accent-color:var(--accent2)">
-      <span style="font-size:12px;color:var(--text-dim)">용병</span>
+    <label class="check-label">
+      <input type="checkbox" id="edit-merc">
+      <span>용병 (Mercenary)</span>
     </label>
     <div class="modal-footer">
       <button class="btn btn-accent" style="flex:1" onclick="saveEdit()">저장</button>
@@ -327,9 +531,10 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
 
 <div class="modal-bg" id="modal-assign">
   <div class="modal">
+    <div class="mob-panel-handle"></div>
     <div class="modal-title">선수 배치</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px" id="assign-slot-label"></div>
-    <div id="assign-player-list" style="max-height:280px;overflow-y:auto"></div>
+    <div id="assign-player-list" style="max-height:50vh;overflow-y:auto"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-assign')">취소</button>
       <button class="btn btn-danger btn-sm" onclick="removeSlotPlayer()">배치 제거</button>
@@ -341,7 +546,7 @@ label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-
 
 <script>
 // ══════════════════════════════════════════
-// SUPABASE INIT
+// SUPABASE
 // ══════════════════════════════════════════
 const SUPA_URL='https://zywdfohfhrssbnjndnwb.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5d2Rmb2hmaHJzc2Juam5kbndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODA1NjQsImV4cCI6MjA5MjQ1NjU2NH0.97ZQJQrIRZrpnkCy4NYd2EBCPe1UM7yu5tmsV9EXsQY';
@@ -361,10 +566,10 @@ let arrows=[];
 let currentView='formation';
 let currentTool='run';
 let assigningSlot=null;
-let draggingPlayerIdx=null;
+let draggingPlayerId=null;
 let isDrawing=false,drawStart=null,drawEnd=null;
 let syncTimeout=null;
-let realtimeChannel=null;
+const isMobile=()=>window.innerWidth<=768;
 
 // ══════════════════════════════════════════
 // FORMATIONS
@@ -423,9 +628,14 @@ const FORMATIONS={
 const AVATAR_COLORS=['#e63946','#f3722c','#4361ee','#3a86ff','#06d6a0','#8338ec','#f77f00','#4cc9f0'];
 const TOOL_COLORS={run:'#f9c74f',pass:'#4cc9f0',support:'#80ffdb',press:'#e63946'};
 const TOOL_LABELS={run:'침투',pass:'패스',support:'지원',press:'압박'};
+const POS_ORDER=['GK','CB','LB','RB','CDM','CM','LM','RM','CAM','LW','RW','CF','ST','TBD'];
+
 function avatarBg(idx){return AVATAR_COLORS[idx%AVATAR_COLORS.length]}
 function initials(name){return name.slice(0,2).toUpperCase()}
-function getPlayerColor(p){return p.pos==='GK'?gkColor:teamColor}
+function getPlayerColor(p){
+  if(p.pos==='TBD') return '#a78bfa';
+  return p.pos==='GK'?gkColor:teamColor;
+}
 
 // ══════════════════════════════════════════
 // INIT
@@ -438,20 +648,37 @@ async function init(){
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.opacity='1';
     setSyncStatus(true);
-    document.querySelector('.f-btn').classList.remove('active');
-    document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
-    document.getElementById('team-color').addEventListener('input',e=>{teamColor=e.target.value;renderField();pushState()});
-    document.getElementById('gk-color').addEventListener('input',e=>{gkColor=e.target.value;renderField();pushState()});
+    syncFormationBtns();
+    // Color inputs
+    ['team-color','gk-color'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',e=>{
+        if(id==='team-color') teamColor=e.target.value;
+        else gkColor=e.target.value;
+        const mid='m-'+id;
+        if(document.getElementById(mid)) document.getElementById(mid).value=e.target.value;
+        renderField();pushState();
+      });
+    });
+    ['m-team-color','m-gk-color'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',e=>{
+        const did=id.slice(2);
+        if(id==='m-team-color') teamColor=e.target.value;
+        else gkColor=e.target.value;
+        document.getElementById(did).value=e.target.value;
+        renderField();pushState();
+      });
+    });
     document.getElementById('hist-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('m-hist-date').value=new Date().toISOString().split('T')[0];
     renderPlayerList();renderField();renderArrowList();
   }catch(e){
     console.error(e);
-    document.getElementById('loading').innerHTML='<div style="color:#e63946;font-size:18px">연결 실패. Supabase 설정을 확인하세요.</div>';
+    document.getElementById('loading').innerHTML='<div style="color:var(--red);font-size:16px;padding:20px;text-align:center">연결 실패<br><small>Supabase 설정을 확인하세요</small></div>';
   }
 }
 
 // ══════════════════════════════════════════
-// SUPABASE CRUD — PLAYERS
+// SUPABASE — PLAYERS
 // ══════════════════════════════════════════
 async function loadPlayers(){
   const{data,error}=await sb.from('players').select('*').order('created_at');
@@ -459,27 +686,49 @@ async function loadPlayers(){
   players=data||[];
 }
 
-async function addPlayer(){
-  const num=+document.getElementById('inp-num').value||(players.length+1);
-  const name=document.getElementById('inp-name').value.trim();
-  const pos=document.getElementById('inp-pos').value;
-  const merc=document.getElementById('inp-merc').checked;
-  if(!name){toast('이름을 입력하세요');return}
-  const{data,error}=await sb.from('players').insert({num,name,pos,merc}).select().single();
-  if(error){toast('오류: '+error.message);return}
+async function _addPlayer(num,name,pos,merc){
+  if(!name){toast('이름을 입력하세요');return false}
+  const{data,error}=await sb.from('players').insert({num:+num||(players.length+1),name,pos,merc}).select().single();
+  if(error){toast('오류: '+error.message);return false}
   players.push(data);
-  document.getElementById('inp-name').value='';
-  document.getElementById('inp-num').value='';
-  document.getElementById('inp-merc').checked=false;
-  renderPlayerList();toast(`${name} 등록 완료!`);
+  return true;
+}
+
+async function addPlayer(){
+  const ok=await _addPlayer(
+    document.getElementById('inp-num').value,
+    document.getElementById('inp-name').value.trim(),
+    document.getElementById('inp-pos').value,
+    document.getElementById('inp-merc').checked
+  );
+  if(ok){
+    document.getElementById('inp-name').value='';
+    document.getElementById('inp-num').value='';
+    document.getElementById('inp-merc').checked=false;
+    renderPlayerList();toast('등록 완료!');
+  }
+}
+
+async function addPlayerMobile(){
+  const ok=await _addPlayer(
+    document.getElementById('m-inp-num').value,
+    document.getElementById('m-inp-name').value.trim(),
+    document.getElementById('m-inp-pos').value,
+    document.getElementById('m-inp-merc').checked
+  );
+  if(ok){
+    document.getElementById('m-inp-name').value='';
+    document.getElementById('m-inp-num').value='';
+    document.getElementById('m-inp-merc').checked=false;
+    renderPlayerList();toast('등록 완료!');
+  }
 }
 
 async function deletePlayer(id){
   const p=players.find(x=>x.id===id);
-  // Remove from placement
-  const newPlacement={};
-  Object.keys(fieldPlacement).forEach(k=>{if(fieldPlacement[k]!==id)newPlacement[k]=fieldPlacement[k]});
-  fieldPlacement=newPlacement;
+  const newP={};
+  Object.keys(fieldPlacement).forEach(k=>{if(fieldPlacement[k]!==id)newP[k]=fieldPlacement[k]});
+  fieldPlacement=newP;
   await sb.from('players').delete().eq('id',id);
   players=players.filter(x=>x.id!==id);
   renderPlayerList();renderField();pushState();toast(`${p?.name||''} 삭제됨`);
@@ -497,7 +746,12 @@ function openEdit(id){
 
 async function saveEdit(){
   const id=document.getElementById('edit-id').value;
-  const updates={num:+document.getElementById('edit-num').value,name:document.getElementById('edit-name').value.trim(),pos:document.getElementById('edit-pos').value,merc:document.getElementById('edit-merc').checked};
+  const updates={
+    num:+document.getElementById('edit-num').value,
+    name:document.getElementById('edit-name').value.trim(),
+    pos:document.getElementById('edit-pos').value,
+    merc:document.getElementById('edit-merc').checked
+  };
   const{error}=await sb.from('players').update(updates).eq('id',id);
   if(error){toast('오류: '+error.message);return}
   const idx=players.findIndex(x=>x.id===id);
@@ -506,87 +760,99 @@ async function saveEdit(){
 }
 
 // ══════════════════════════════════════════
-// SUPABASE — CURRENT STATE (실시간 공유)
+// SUPABASE — CURRENT STATE
 // ══════════════════════════════════════════
 async function loadCurrentState(){
-  const{data,error}=await sb.from('current_state').select('*').eq('id',1).single();
-  if(error||!data) return;
+  const{data}=await sb.from('current_state').select('*').eq('id',1).single();
+  if(!data)return;
   currentFormation=data.formation||'4-3-3';
   fieldPlacement=data.placement||{};
   arrows=data.arrows||[];
   teamColor=data.team_color||'#e63946';
   gkColor=data.gk_color||'#f9c74f';
-  document.getElementById('team-color').value=teamColor;
-  document.getElementById('gk-color').value=gkColor;
+  ['team-color','m-team-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=teamColor});
+  ['gk-color','m-gk-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=gkColor});
 }
 
 async function pushState(){
   clearTimeout(syncTimeout);
   syncTimeout=setTimeout(async()=>{
-    const{error}=await sb.from('current_state').update({
+    await sb.from('current_state').update({
       formation:currentFormation,placement:fieldPlacement,
       arrows,team_color:teamColor,gk_color:gkColor,
       updated_at:new Date().toISOString()
     }).eq('id',1);
-    if(!error) setSyncStatus(true);
   },600);
 }
 
 function setupRealtime(){
-  realtimeChannel=sb.channel('current_state_changes')
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'current_state'},payload=>{
-      const d=payload.new;
+  sb.channel('state_sync')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'current_state'},({new:d})=>{
       currentFormation=d.formation||currentFormation;
       fieldPlacement=d.placement||{};
       arrows=d.arrows||[];
       teamColor=d.team_color||teamColor;
       gkColor=d.gk_color||gkColor;
-      document.getElementById('team-color').value=teamColor;
-      document.getElementById('gk-color').value=gkColor;
-      document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
-      renderField();renderArrowList();
+      ['team-color','m-team-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=teamColor});
+      ['gk-color','m-gk-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=gkColor});
+      syncFormationBtns();renderField();renderArrowList();
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'players'},async()=>{
       await loadPlayers();renderPlayerList();renderField();
     })
-    .subscribe(status=>{
-      setSyncStatus(status==='SUBSCRIBED');
-    });
+    .subscribe(s=>setSyncStatus(s==='SUBSCRIBED'));
 }
 
 function setSyncStatus(ok){
   document.getElementById('sync-dot').classList.toggle('live',ok);
-  document.getElementById('sync-label').textContent=ok?'실시간 연결됨':'연결 끊김';
+  const lbl=document.getElementById('sync-label');
+  if(lbl) lbl.textContent=ok?'실시간':'끊김';
 }
 
 // ══════════════════════════════════════════
 // SUPABASE — HISTORY
 // ══════════════════════════════════════════
-async function saveHistory(){
-  const date=document.getElementById('hist-date').value;
-  const title=document.getElementById('hist-title-inp').value.trim()||'무제 경기';
-  const memo=document.getElementById('hist-memo').value.trim();
-  const tacticMemo=document.getElementById('tactic-memo').value;
-  if(!date){toast('날짜를 선택하세요');return}
+async function _saveHistory(date,title,memo){
+  if(!date){toast('날짜를 선택하세요');return false}
   const{error}=await sb.from('formations').insert({
-    date,title,memo,formation:currentFormation,
-    placement:fieldPlacement,arrows,
-    team_color:teamColor,gk_color:gkColor,tactic_memo:tacticMemo
+    date,title:title||'무제 경기',memo,
+    formation:currentFormation,placement:fieldPlacement,
+    arrows,team_color:teamColor,gk_color:gkColor,
+    tactic_memo:document.getElementById('tactic-memo').value
   });
-  if(error){toast('저장 오류: '+error.message);return}
+  if(error){toast('오류: '+error.message);return false}
   toast('기록 저장 완료!');
   await loadHistory();
+  return true;
+}
+
+async function saveHistory(){
+  await _saveHistory(
+    document.getElementById('hist-date').value,
+    document.getElementById('hist-title-inp').value.trim(),
+    document.getElementById('hist-memo').value.trim()
+  );
+}
+
+async function saveHistoryMobile(){
+  const ok=await _saveHistory(
+    document.getElementById('m-hist-date').value,
+    document.getElementById('m-hist-title-inp').value.trim(),
+    document.getElementById('m-hist-memo').value.trim()
+  );
+  if(ok) renderMobHistory();
 }
 
 async function loadHistory(){
   const{data}=await sb.from('formations').select('*').order('created_at',{ascending:false});
-  historyList=data||[];renderHistoryList();
+  historyList=data||[];
+  renderHistoryList();renderMobHistory();
 }
 
 async function deleteHistory(id){
   await sb.from('formations').delete().eq('id',id);
   historyList=historyList.filter(h=>h.id!==id);
-  renderHistoryList();toast('삭제됨');
+  renderHistoryList();renderMobHistory();toast('삭제됨');
 }
 
 function loadHistoryItem(h){
@@ -596,69 +862,120 @@ function loadHistoryItem(h){
   teamColor=h.team_color||teamColor;
   gkColor=h.gk_color||gkColor;
   if(h.tactic_memo) document.getElementById('tactic-memo').value=h.tactic_memo;
-  document.getElementById('team-color').value=teamColor;
-  document.getElementById('gk-color').value=gkColor;
-  document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
-  renderField();renderArrowList();pushState();switchView('formation');toast('불러오기 완료!');
+  ['team-color','m-team-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=teamColor});
+  ['gk-color','m-gk-color'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).value=gkColor});
+  syncFormationBtns();renderField();renderArrowList();pushState();
+  closeMobPanel();switchView('formation');toast('불러오기 완료!');
 }
 
 let selectedHistId=null;
+function histItemHtml(h,isMob=false){
+  return`<div class="history-item${h.id===selectedHistId?' active':''}" onclick="selectHist('${h.id}',${isMob})">
+    <div class="hist-date">${h.date}</div>
+    <div class="hist-title">${h.title}</div>
+    <div class="hist-form">${h.formation}</div>
+    ${h.memo?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${h.memo}</div>`:''}
+    <div class="hist-actions">
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();loadHistoryItem(historyList.find(x=>x.id==='${h.id}'))">불러오기</button>
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteHistory('${h.id}')">삭제</button>
+    </div>
+  </div>`;
+}
+
 function renderHistoryList(){
   const el=document.getElementById('history-list');
-  if(!historyList.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">저장된 기록이 없습니다</div>';return}
-  el.innerHTML=historyList.map(h=>`
-    <div class="history-item${h.id===selectedHistId?' active':''}" onclick="selectHist('${h.id}')">
-      <div class="hist-date">${h.date}</div>
-      <div class="hist-title">${h.title}</div>
-      <div class="hist-form">${h.formation}</div>
-      ${h.memo?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${h.memo}</div>`:''}
-      <div class="hist-actions">
-        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();loadHistoryItem(historyList.find(x=>x.id==='${h.id}'))">불러오기</button>
-        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteHistory('${h.id}')">삭제</button>
-      </div>
-    </div>
-  `).join('');
+  if(!el)return;
+  el.innerHTML=historyList.length?historyList.map(h=>histItemHtml(h)).join('')
+    :'<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">기록이 없습니다</div>';
+}
+
+function renderMobHistory(){
+  const el=document.getElementById('m-history-list');
+  if(!el)return;
+  el.innerHTML=historyList.length?historyList.map(h=>histItemHtml(h,true)).join('')
+    :'<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">기록이 없습니다</div>';
 }
 
 function selectHist(id){
   selectedHistId=id;
   const h=historyList.find(x=>x.id===id);if(!h)return;
-  document.getElementById('hist-detail').innerHTML=`
-    <div style="background:var(--panel3);border-radius:8px;padding:12px;border:1px solid var(--border)">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent)">${h.formation}</div>
-      <div style="font-size:14px;font-weight:600;margin:4px 0">${h.title}</div>
-      <div style="font-size:11px;color:var(--text-muted)">${h.date}</div>
-      ${h.memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px">${h.memo}</div>`:''}
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)">
-        배치 ${Object.keys(h.placement||{}).length}명 / 화살표 ${(h.arrows||[]).length}개
-      </div>
-      ${h.tactic_memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px;padding:8px;background:var(--panel2);border-radius:6px">${h.tactic_memo}</div>`:''}
-    </div>
-  `;
-  renderHistoryList();
+  const html=`<div style="background:var(--panel3);border-radius:9px;padding:12px;border:1px solid var(--border)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent)">${h.formation}</div>
+    <div style="font-size:14px;font-weight:600;margin:4px 0">${h.title}</div>
+    <div style="font-size:11px;color:var(--text-muted)">${h.date}</div>
+    ${h.memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px">${h.memo}</div>`:''}
+    <div style="margin-top:8px;font-size:12px;color:var(--text-dim)">배치 ${Object.keys(h.placement||{}).length}명 / 화살표 ${(h.arrows||[]).length}개</div>
+    ${h.tactic_memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px;padding:8px;background:var(--panel2);border-radius:6px">${h.tactic_memo}</div>`:''}
+  </div>`;
+  const det=document.getElementById('hist-detail');
+  if(det) det.innerHTML=html;
+  renderHistoryList();renderMobHistory();
 }
 
 // ══════════════════════════════════════════
-// VIEW
+// VIEW SWITCHING
 // ══════════════════════════════════════════
 function switchView(v){
   currentView=v;
+  // Desktop tabs
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['formation','tactics','history'][i]===v));
   ['formation','tactics','history'].forEach(n=>{
-    document.getElementById('view-'+n+'-left').classList.toggle('active',n===v);
-    document.getElementById('view-'+n+'-right').classList.toggle('active',n===v);
+    const l=document.getElementById('view-'+n+'-left');
+    const r=document.getElementById('view-'+n+'-right');
+    if(l)l.classList.toggle('active',n===v);
+    if(r)r.classList.toggle('active',n===v);
   });
-  document.getElementById('field-wrap').classList.toggle('tactic-mode',v==='tactics');
+  // Mobile bottom nav
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  const navMap={formation:'mnav-formation',tactics:'mnav-tactics',history:'mnav-history'};
+  if(navMap[v]) document.getElementById(navMap[v])?.classList.add('active');
+  // Tactic canvas
+  const fw=document.getElementById('field-wrap');
+  fw.classList.toggle('tactic-mode',v==='tactics');
+  // Mobile tactic float toolbar
+  document.getElementById('tactic-float').classList.toggle('hidden',v!=='tactics');
   if(v==='history') loadHistory();
+}
+
+// ══════════════════════════════════════════
+// MOBILE PANEL
+// ══════════════════════════════════════════
+let currentMobPanel=null;
+function openMobPanel(name){
+  closeMobPanel();
+  const el=document.getElementById('mob-panel-'+name);
+  const ov=document.getElementById('mob-overlay');
+  if(!el)return;
+  currentMobPanel=name;
+  el.classList.add('open');
+  ov.classList.add('show');
+  // Update mobile nav active
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  const map={players:'mnav-players',settings:'mnav-settings',history:'mnav-history'};
+  if(map[name]) document.getElementById(map[name])?.classList.add('active');
+}
+
+function closeMobPanel(){
+  if(currentMobPanel){
+    document.getElementById('mob-panel-'+currentMobPanel)?.classList.remove('open');
+    currentMobPanel=null;
+  }
+  document.getElementById('mob-overlay').classList.remove('show');
 }
 
 // ══════════════════════════════════════════
 // FORMATION
 // ══════════════════════════════════════════
+function syncFormationBtns(){
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
+}
+
 function setFormation(f){
   currentFormation=f;
-  document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===f));
-  fieldPlacement={};renderField();pushState();
+  fieldPlacement={};
+  syncFormationBtns();
+  renderField();pushState();
+  if(isMobile()) closeMobPanel();
 }
 
 function clearField(){fieldPlacement={};renderField();pushState();toast('배치 초기화')}
@@ -666,22 +983,78 @@ function clearField(){fieldPlacement={};renderField();pushState();toast('배치 
 function autoArrange(){
   const slots=FORMATIONS[currentFormation];
   fieldPlacement={};
-  const posOrder=['GK','CB','LB','RB','CDM','CM','LM','RM','CAM','LW','RW','CF','ST'];
-  const sorted=[...players].map((p,i)=>({p,i})).sort((a,b)=>posOrder.indexOf(a.p.pos)-posOrder.indexOf(b.p.pos));
-  const avail=[...sorted];
+  const posPlayers=players.filter(p=>p.pos!=='TBD');
+  const tbdPlayers=players.filter(p=>p.pos==='TBD');
+  const avail=[...posPlayers.map((p,i)=>({p,i:players.indexOf(p)}))];
   slots.forEach(slot=>{
     let match=avail.findIndex(({p})=>p.pos===slot.pos);
-    if(match===-1) match=0;
-    if(avail.length){fieldPlacement[slot.id]=avail[match].p.id;avail.splice(match,1)}
+    if(match===-1&&avail.length>0) match=0;
+    if(match!==-1){fieldPlacement[slot.id]=avail[match].p.id;avail.splice(match,1)}
   });
   renderField();pushState();toast('자동 배치 완료!');
 }
 
 // ══════════════════════════════════════════
-// DRAG
+// DRAG (desktop)
 // ══════════════════════════════════════════
-let draggingPlayerId=null;
-function onPlayerDragStart(e,id){draggingPlayerId=id;e.dataTransfer.effectAllowed='copy'}
+function onPlayerDragStart(e,id){
+  draggingPlayerId=id;
+  e.dataTransfer.effectAllowed='copy';
+}
+
+// ══════════════════════════════════════════
+// RENDER PLAYER LIST
+// ══════════════════════════════════════════
+function playerCardHtml(p,i){
+  const isTbd=p.pos==='TBD';
+  return`<div class="player-card${p.merc?' mercenary':''}${isTbd?' tbd-card':''}"
+    draggable="true" ondragstart="onPlayerDragStart(event,'${p.id}')">
+    <div class="player-num">${p.num}</div>
+    <div class="player-avatar" style="background:${avatarBg(i)}">${initials(p.name)}</div>
+    <div class="player-info">
+      <div class="player-name">${p.name}
+        ${p.merc?'<span class="badge badge-merc">용병</span>':''}
+        ${isTbd?'<span class="badge badge-tbd">미정</span>':''}
+      </div>
+      <div class="player-pos">${isTbd?'포지션 미정':p.pos}</div>
+    </div>
+    <div class="card-actions">
+      <button class="icon-btn" onclick="openEdit('${p.id}')">✏️</button>
+      <button class="icon-btn del" onclick="deletePlayer('${p.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+function renderPlayerList(){
+  const total=players.length;
+  const tbdCount=players.filter(p=>p.pos==='TBD').length;
+
+  ['player-count','m-player-count'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent=total;
+  });
+
+  const noHtml='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">선수를 등록하세요</div>';
+
+  // Group: TBD first, then by position
+  const tbdPlayers=players.filter(p=>p.pos==='TBD');
+  const regPlayers=players.filter(p=>p.pos!=='TBD');
+
+  let html='';
+  if(tbdCount>0){
+    html+=`<div class="unassigned-banner">
+      <div class="unassigned-count">${tbdCount}</div>
+      <div class="unassigned-label">포지션 미정 선수<br><span style="font-size:10px;color:var(--text-muted)">역할군을 아직 정하지 않은 선수</span></div>
+    </div>`;
+    html+=tbdPlayers.map((p,i)=>playerCardHtml(p,players.indexOf(p))).join('');
+    if(regPlayers.length>0) html+=`<div class="pos-section-title">포지션 배정 선수</div>`;
+  }
+  html+=regPlayers.length?regPlayers.map(p=>playerCardHtml(p,players.indexOf(p))).join(''):(!tbdCount?noHtml:'');
+
+  ['player-list','m-player-list'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=html||noHtml;
+  });
+}
 
 // ══════════════════════════════════════════
 // FIELD RENDER
@@ -697,92 +1070,103 @@ function renderField(){
     const px=slot.x/100*W,py=slot.y/100*H;
     const placedId=fieldPlacement[slot.id];
     const p=placedId?players.find(x=>x.id===placedId):null;
+
     if(!p){
       const div=document.createElement('div');
-      div.className='fp-slot';div.id='slot-'+slot.id;
+      div.className='fp-slot';
       div.style.cssText=`left:${px}px;top:${py}px;pointer-events:all`;
-      div.innerHTML=`<div class="slot-circle">+</div><div style="font-size:9px;color:rgba(255,255,255,0.3);text-align:center;margin-top:2px">${slot.pos}</div>`;
+      div.innerHTML=`<div class="slot-circle">+</div><div class="slot-pos">${slot.pos}</div>`;
       div.ondragover=e=>{e.preventDefault();div.classList.add('over')};
       div.ondragleave=()=>div.classList.remove('over');
-      div.ondrop=e=>{e.preventDefault();div.classList.remove('over');if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}};
+      div.ondrop=e=>{
+        e.preventDefault();div.classList.remove('over');
+        if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}
+      };
       div.onclick=()=>openAssignModal(slot.id);
       slotEl.appendChild(div);
     } else {
       const color=getPlayerColor(p);
+      const isTbd=p.pos==='TBD';
       const div=document.createElement('div');
       div.className='field-player';
       div.style.cssText=`left:${px}px;top:${py}px;pointer-events:all`;
       div.innerHTML=`
-        <div class="fp-circle" style="background:${color}22;border-color:${color}88">
-          <span style="font-size:11px;font-weight:800;color:${color}">${p.num}</span>
+        <div class="fp-circle" style="background:${color}20;border-color:${color}90;${isTbd?'border-style:dashed':''}">
+          <span style="font-size:12px;font-weight:800;color:${color}">${p.num}</span>
           ${p.merc?`<div style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:var(--accent2);border-radius:50%;border:1px solid var(--panel)"></div>`:''}
+          ${isTbd?`<div style="position:absolute;bottom:-4px;right:-4px;width:10px;height:10px;background:var(--tbd);border-radius:50%;border:1px solid var(--panel)"></div>`:''}
         </div>
         <div class="fp-name">${p.name}</div>
       `;
       div.ondragover=e=>e.preventDefault();
-      div.ondrop=e=>{e.preventDefault();if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}};
+      div.ondrop=e=>{
+        e.preventDefault();
+        if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}
+      };
       div.onclick=()=>openAssignModal(slot.id);
       playerEl.appendChild(div);
     }
   });
 
-  // Placed list
+  // Placed list (desktop)
   const placed=slots.filter(s=>fieldPlacement[s.id]);
+  const tbdPlaced=placed.filter(s=>{const p=players.find(x=>x.id===fieldPlacement[s.id]);return p&&p.pos==='TBD'});
   const placedEl=document.getElementById('placed-list');
-  if(!placed.length){placedEl.innerHTML='<span style="color:var(--text-dim)">슬롯에 선수를 배치하세요.</span>'}
-  else{
-    placedEl.innerHTML=placed.map(s=>{
-      const p=players.find(x=>x.id===fieldPlacement[s.id]);if(!p)return'';
-      const c=getPlayerColor(p);
-      return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${c};min-width:30px">#${p.num}</span>
-        <span style="font-size:12px;font-weight:600">${p.name}</span>
-        <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${s.pos}</span>
-      </div>`;
-    }).join('');
+  if(placedEl){
+    if(!placed.length){placedEl.innerHTML='<span style="color:var(--text-dim)">슬롯에 배치하세요.</span>'}
+    else{
+      placedEl.innerHTML=placed.map(s=>{
+        const p=players.find(x=>x.id===fieldPlacement[s.id]);if(!p)return'';
+        const c=getPlayerColor(p);
+        return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${c};min-width:30px">#${p.num}</span>
+          <span style="font-size:12px;font-weight:600">${p.name}</span>
+          ${p.pos==='TBD'?'<span class="badge badge-tbd" style="margin-left:2px">미정</span>':''}
+          <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${s.pos}</span>
+        </div>`;
+      }).join('');
+    }
   }
   renderArrows();
-}
-
-function renderPlayerList(){
-  document.getElementById('player-count').textContent=players.length;
-  const el=document.getElementById('player-list');
-  if(!players.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">선수를 등록하세요</div>';return}
-  el.innerHTML=players.map((p,i)=>`
-    <div class="player-card${p.merc?' mercenary':''}" draggable="true" ondragstart="onPlayerDragStart(event,'${p.id}')">
-      <div class="player-num">${p.num}</div>
-      <div class="player-avatar" style="background:${avatarBg(i)}">${initials(p.name)}</div>
-      <div class="player-info">
-        <div class="player-name">${p.name}${p.merc?` <span class="merc-badge">용병</span>`:''}</div>
-        <div class="player-pos">${p.pos}</div>
-      </div>
-      <div class="card-actions">
-        <button class="icon-btn" onclick="openEdit('${p.id}')">✏️</button>
-        <button class="icon-btn del" onclick="deletePlayer('${p.id}')">🗑</button>
-      </div>
-    </div>
-  `).join('');
 }
 
 // ══════════════════════════════════════════
 // ASSIGN MODAL
 // ══════════════════════════════════════════
 function openAssignModal(slotId){
-  if(currentView==='tactics') return;
+  if(currentView==='tactics')return;
   assigningSlot=slotId;
   const slot=FORMATIONS[currentFormation].find(s=>s.id===slotId);
   document.getElementById('assign-slot-label').textContent=`포지션: ${slot.pos} — ${slotId}`;
   const list=document.getElementById('assign-player-list');
-  if(!players.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">등록된 선수가 없습니다</div>'}
-  else{
-    list.innerHTML=players.map((p,i)=>`
-      <div class="player-card${fieldPlacement[slotId]===p.id?' selected':''}" onclick="assignToSlot('${p.id}')" style="cursor:pointer">
-        <div class="player-num">${p.num}</div>
-        <div class="player-avatar" style="background:${avatarBg(i)}">${initials(p.name)}</div>
-        <div class="player-info"><div class="player-name">${p.name}${p.merc?' <span class="merc-badge">용병</span>':''}</div><div class="player-pos">${p.pos}</div></div>
-        ${fieldPlacement[slotId]===p.id?'<span style="color:var(--accent);font-size:18px">✓</span>':''}
-      </div>
-    `).join('');
+  if(!players.length){
+    list.innerHTML='<div style="padding:16px;font-size:13px;color:var(--text-muted)">등록된 선수가 없습니다</div>';
+  } else {
+    // Sort: matching pos first, then TBD, then rest
+    const sorted=[...players].sort((a,b)=>{
+      const aMatch=a.pos===slot.pos;const bMatch=b.pos===slot.pos;
+      if(aMatch&&!bMatch)return -1;if(!aMatch&&bMatch)return 1;
+      if(a.pos==='TBD'&&b.pos!=='TBD')return -1;if(a.pos!=='TBD'&&b.pos==='TBD')return 1;
+      return 0;
+    });
+    list.innerHTML=sorted.map((p,i)=>{
+      const isPlaced=fieldPlacement[slotId]===p.id;
+      const isTbd=p.pos==='TBD';
+      const c=getPlayerColor(p);
+      return`<div class="player-card${isPlaced?' selected':''}${p.merc?' mercenary':''}${isTbd?' tbd-card':''}"
+        onclick="assignToSlot('${p.id}')" style="cursor:pointer;margin-bottom:6px">
+        <div class="player-num" style="color:${c}">${p.num}</div>
+        <div class="player-avatar" style="background:${avatarBg(players.indexOf(p))}">${initials(p.name)}</div>
+        <div class="player-info">
+          <div class="player-name">${p.name}
+            ${p.merc?'<span class="badge badge-merc">용병</span>':''}
+            ${isTbd?'<span class="badge badge-tbd">미정</span>':''}
+          </div>
+          <div class="player-pos">${isTbd?'미정':p.pos}${p.pos===slot.pos?' ✓':''}</div>
+        </div>
+        ${isPlaced?'<span style="color:var(--accent);font-size:20px">✓</span>':''}
+      </div>`;
+    }).join('');
   }
   document.getElementById('modal-assign').classList.add('show');
 }
@@ -791,141 +1175,129 @@ function assignToSlot(id){fieldPlacement[assigningSlot]=id;closeModal('modal-ass
 function removeSlotPlayer(){delete fieldPlacement[assigningSlot];closeModal('modal-assign');renderField();pushState()}
 
 // ══════════════════════════════════════════
-// ARROWS
+// ARROWS / TACTICS
 // ══════════════════════════════════════════
 function setTool(t){
   currentTool=t;
+  // Desktop
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tool-'+t).classList.add('active');
+  const dtool=document.getElementById('tool-'+t);
+  if(dtool) dtool.classList.add('active');
+  // Mobile float
+  ['run','pass','support','press','erase'].forEach(tt=>{
+    const el=document.getElementById('tf-'+tt);
+    if(el) el.classList.toggle('active',tt===t);
+  });
 }
 
 const canvas=document.getElementById('tactic-canvas');
 const ctx=canvas.getContext('2d');
 
-canvas.addEventListener('mousedown',e=>{
+function getEventPos(e){
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  const src=e.touches?e.touches[0]:e;
+  return{x:(src.clientX-r.left)*scaleX,y:(src.clientY-r.top)*scaleY};
+}
+
+function onDrawStart(e){
   if(currentView!=='tactics'||currentTool==='erase')return;
-  const r=canvas.getBoundingClientRect();
-  const scaleX=380/r.width,scaleY=560/r.height;
-  drawStart={x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY};
-  isDrawing=true;drawEnd=null;
-});
-
-canvas.addEventListener('mousemove',e=>{
+  if(e.touches) e.preventDefault();
+  drawStart=getEventPos(e);isDrawing=true;drawEnd=null;
+}
+function onDrawMove(e){
   if(!isDrawing)return;
-  const r=canvas.getBoundingClientRect();
-  const scaleX=380/r.width,scaleY=560/r.height;
-  drawEnd={x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY};
-  drawPreview();
-});
-
-canvas.addEventListener('mouseup',e=>{
+  if(e.touches) e.preventDefault();
+  drawEnd=getEventPos(e);drawPreview();
+}
+function onDrawEnd(e){
   if(!isDrawing)return;
   isDrawing=false;
   if(!drawEnd){ctx.clearRect(0,0,380,560);return}
   const dx=drawEnd.x-drawStart.x,dy=drawEnd.y-drawStart.y;
-  if(Math.sqrt(dx*dx+dy*dy)<15){ctx.clearRect(0,0,380,560);return}
+  if(Math.sqrt(dx*dx+dy*dy)<12){ctx.clearRect(0,0,380,560);return}
   arrows.push({type:currentTool,x1:drawStart.x,y1:drawStart.y,x2:drawEnd.x,y2:drawEnd.y,w:+document.getElementById('arrow-width').value});
   drawStart=null;drawEnd=null;ctx.clearRect(0,0,380,560);
   renderArrows();renderArrowList();pushState();
-});
-
-canvas.addEventListener('click',e=>{
+}
+function onEraseClick(e){
   if(currentView!=='tactics'||currentTool!=='erase')return;
-  const r=canvas.getBoundingClientRect();
-  const scaleX=380/r.width,scaleY=560/r.height;
-  const mx=(e.clientX-r.left)*scaleX,my=(e.clientY-r.top)*scaleY;
+  const pos=getEventPos(e);
   let removed=false;
   arrows=arrows.filter(a=>{
-    const d=distToSegment(mx,my,a.x1,a.y1,a.x2,a.y2);
-    if(d<15){removed=true;return false}return true;
+    if(distToSegment(pos.x,pos.y,a.x1,a.y1,a.x2,a.y2)<18){removed=true;return false}return true;
   });
   if(removed){renderArrows();renderArrowList();pushState();toast('화살표 삭제됨')}
-});
+}
 
-// Touch support
-canvas.addEventListener('touchstart',e=>{
-  e.preventDefault();
-  const t=e.touches[0];
-  const r=canvas.getBoundingClientRect();
-  const scaleX=380/r.width,scaleY=560/r.height;
-  drawStart={x:(t.clientX-r.left)*scaleX,y:(t.clientY-r.top)*scaleY};
-  isDrawing=true;
-},{passive:false});
-
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  if(!isDrawing)return;
-  const t=e.touches[0];
-  const r=canvas.getBoundingClientRect();
-  const scaleX=380/r.width,scaleY=560/r.height;
-  drawEnd={x:(t.clientX-r.left)*scaleX,y:(t.clientY-r.top)*scaleY};
-  drawPreview();
-},{passive:false});
-
-canvas.addEventListener('touchend',e=>{
-  if(!isDrawing||!drawEnd){isDrawing=false;ctx.clearRect(0,0,380,560);return}
-  isDrawing=false;
-  const dx=drawEnd.x-drawStart.x,dy=drawEnd.y-drawStart.y;
-  if(Math.sqrt(dx*dx+dy*dy)<15){ctx.clearRect(0,0,380,560);return}
-  arrows.push({type:currentTool,x1:drawStart.x,y1:drawStart.y,x2:drawEnd.x,y2:drawEnd.y,w:+document.getElementById('arrow-width').value});
-  drawStart=null;drawEnd=null;ctx.clearRect(0,0,380,560);
-  renderArrows();renderArrowList();pushState();
-});
+canvas.addEventListener('mousedown',onDrawStart);
+canvas.addEventListener('mousemove',onDrawMove);
+canvas.addEventListener('mouseup',onDrawEnd);
+canvas.addEventListener('click',onEraseClick);
+canvas.addEventListener('touchstart',onDrawStart,{passive:false});
+canvas.addEventListener('touchmove',onDrawMove,{passive:false});
+canvas.addEventListener('touchend',onDrawEnd,{passive:false});
 
 function drawPreview(){
   ctx.clearRect(0,0,380,560);
   if(!drawStart||!drawEnd)return;
   const color=TOOL_COLORS[currentTool];
   ctx.strokeStyle=color;ctx.lineWidth=+document.getElementById('arrow-width').value+1;
-  ctx.setLineDash([6,4]);ctx.globalAlpha=0.7;
+  ctx.setLineDash([6,4]);ctx.globalAlpha=0.75;
   ctx.beginPath();ctx.moveTo(drawStart.x,drawStart.y);ctx.lineTo(drawEnd.x,drawEnd.y);ctx.stroke();
   ctx.setLineDash([]);ctx.globalAlpha=1;
 }
 
 function distToSegment(px,py,ax,ay,bx,by){
   const dx=bx-ax,dy=by-ay;
-  if(dx===0&&dy===0)return Math.hypot(px-ax,py-ay);
+  if(!dx&&!dy)return Math.hypot(px-ax,py-ay);
   const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy)));
   return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
 }
 
 function renderArrows(){
-  const layer=document.getElementById('arrows-layer');
-  layer.innerHTML=arrows.map(a=>{
+  document.getElementById('arrows-layer').innerHTML=arrows.map(a=>{
     const color=TOOL_COLORS[a.type];
-    const markerId='arrow'+a.type.charAt(0).toUpperCase()+a.type.slice(1);
+    const mid='arrow'+a.type.charAt(0).toUpperCase()+a.type.slice(1);
     const dash=a.type==='support'?'stroke-dasharray="8,4"':'';
-    return`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${color}" stroke-width="${a.w||2}" marker-end="url(#${markerId})" opacity="0.85" ${dash}/>`;
+    return`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${color}" stroke-width="${a.w||2}" marker-end="url(#${mid})" opacity="0.9" ${dash}/>`;
   }).join('');
 }
 
 function renderArrowList(){
-  const el=document.getElementById('arrow-list');
-  if(!arrows.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">아직 화살표 없음</div>';return}
-  el.innerHTML=arrows.map((a,i)=>`
+  const el=document.getElementById('arrow-list');if(!el)return;
+  el.innerHTML=arrows.length?arrows.map((a,i)=>`
     <div class="arrow-item">
       <div class="arrow-color" style="background:${TOOL_COLORS[a.type]}"></div>
       <span class="move-type-badge" style="background:${TOOL_COLORS[a.type]}22;color:${TOOL_COLORS[a.type]}">${TOOL_LABELS[a.type]}</span>
       <span style="color:var(--text-muted)">#${i+1}</span>
       <button class="icon-btn del" style="margin-left:auto" onclick="removeArrow(${i})">✕</button>
-    </div>
-  `).join('');
+    </div>`).join('')
+    :'<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">아직 화살표 없음</div>';
 }
 
 function removeArrow(i){arrows.splice(i,1);renderArrows();renderArrowList();pushState()}
 function clearArrows(){arrows=[];renderArrows();renderArrowList();pushState();toast('화살표 모두 삭제')}
-function saveTacticPrompt(){switchView('history');setTimeout(()=>toast('날짜·제목 입력 후 저장하세요!'),300)}
+function saveTacticPrompt(){
+  if(isMobile()) openMobPanel('history');
+  else switchView('history');
+  setTimeout(()=>toast('날짜·제목 입력 후 저장!'),300);
+}
 
 // ══════════════════════════════════════════
 // MODAL / TOAST
 // ══════════════════════════════════════════
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
+
 function toast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
+// ══════════════════════════════════════════
+// START
+// ══════════════════════════════════════════
 init();
 </script>
 </body>
