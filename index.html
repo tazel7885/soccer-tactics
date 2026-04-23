@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ TacticBoard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --panel:#0f1923;--panel2:#162330;--panel3:#1e2f42;
+  --accent:#f9c74f;--accent2:#f3722c;--red:#e63946;--blue:#4cc9f0;
+  --text:#e8edf2;--text-dim:#8fa3b8;--text-muted:#4a6174;
+  --border:rgba(255,255,255,0.08);--radius:10px;
+}
+body{font-family:'Pretendard',sans-serif;background:#0b1520;color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{display:grid;grid-template-columns:260px 1fr 260px;grid-template-rows:60px 1fr;height:100vh}
+.topbar{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:10}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);flex-shrink:0}
+.logo span{color:var(--text-muted)}
+.tab-nav{display:flex;gap:4px;margin-left:auto}
+.tab-btn{background:transparent;border:1px solid transparent;color:var(--text-dim);padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all .2s}
+.tab-btn.active{background:var(--accent);color:#0b1520;border-color:var(--accent)}
+.tab-btn:hover:not(.active){background:var(--panel3);color:var(--text)}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:var(--panel3);border:1px solid var(--border)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:background .3s}
+.sync-dot.live{background:#06d6a0;box-shadow:0 0 6px #06d6a088;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.left-panel{background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
+.right-panel{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:16px}
+.center{background:#0b1520;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.panel-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.section{margin-bottom:20px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .15s}
+.btn-accent{background:var(--accent);color:#0b1520}.btn-accent:hover{background:#f7d46a}
+.btn-ghost{background:var(--panel3);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:var(--panel2)}
+.btn-danger{background:rgba(230,57,70,0.15);color:var(--red);border:1px solid rgba(230,57,70,0.3)}.btn-danger:hover{background:rgba(230,57,70,0.25)}
+.btn-sm{padding:5px 10px;font-size:12px;width:auto}
+input,select,textarea{background:var(--panel3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;width:100%;outline:none;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--panel)}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row input,.row select{margin-bottom:0}
+label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:4px;font-weight:500}
+.player-card{background:var(--panel3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:grab;transition:all .2s;position:relative}
+.player-card:hover{border-color:rgba(255,255,255,0.2)}
+.player-card.mercenary{border-left:3px solid var(--accent2)}
+.player-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.player-info{flex:1;min-width:0}
+.player-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-pos{font-size:11px;color:var(--text-muted)}
+.player-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);min-width:20px;text-align:center}
+.merc-badge{font-size:9px;background:var(--accent2);color:#fff;padding:1px 5px;border-radius:3px;font-weight:700}
+.card-actions{display:flex;gap:4px;opacity:0;transition:opacity .2s}
+.player-card:hover .card-actions{opacity:1}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px 4px;border-radius:4px;font-size:13px;transition:color .2s}
+.icon-btn:hover{color:var(--text)}.icon-btn.del:hover{color:var(--red)}
+.formation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.f-btn{background:var(--panel3);border:1px solid var(--border);color:var(--text-dim);padding:7px 4px;border-radius:7px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:15px;text-align:center;transition:all .2s}
+.f-btn:hover{border-color:var(--accent);color:var(--accent)}
+.f-btn.active{background:rgba(249,199,79,0.15);border-color:var(--accent);color:var(--accent)}
+.field-wrap{position:relative;width:380px;height:560px;user-select:none}
+.field-svg{width:100%;height:100%;border-radius:12px;overflow:hidden}
+.field-player{position:absolute;transform:translate(-50%,-50%);cursor:pointer;text-align:center;z-index:5}
+.field-player .fp-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid rgba(255,255,255,0.4);box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform .15s}
+.field-player:hover .fp-circle{transform:scale(1.12)}
+.field-player .fp-name{font-size:10px;font-weight:600;white-space:nowrap;margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,0.8);max-width:60px;overflow:hidden;text-overflow:ellipsis}
+.fp-slot{position:absolute;transform:translate(-50%,-50%);cursor:pointer;z-index:3}
+.fp-slot .slot-circle{width:36px;height:36px;border-radius:50%;border:2px dashed rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,0.2);transition:all .2s}
+.fp-slot:hover .slot-circle{border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.5)}
+.fp-slot.over .slot-circle{border-color:var(--accent);color:var(--accent);background:rgba(249,199,79,0.1)}
+.history-item{background:var(--panel3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.history-item:hover{border-color:rgba(255,255,255,0.2)}
+.history-item.active{border-color:var(--accent);background:rgba(249,199,79,0.05)}
+.hist-date{font-size:11px;color:var(--text-muted)}
+.hist-title{font-size:13px;font-weight:600}
+.hist-form{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent)}
+.hist-actions{display:flex;gap:4px;margin-top:6px}
+.tactic-tools{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tool-btn{padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--panel3);color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;transition:all .2s}
+.tool-btn.active{background:rgba(249,199,79,0.15);border-color:var(--accent);color:var(--accent)}
+.tool-btn:hover:not(.active){color:var(--text)}
+.arrow-list{max-height:160px;overflow-y:auto}
+.arrow-item{background:var(--panel3);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:5px;display:flex;align-items:center;gap:8px;font-size:12px}
+.arrow-color{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.move-type-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.modal-bg.show{opacity:1;pointer-events:all}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;width:360px;max-width:90vw}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:16px}
+.modal-footer{display:flex;gap:8px;margin-top:16px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel3);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:500;z-index:200;transition:transform .3s,opacity .3s;opacity:0}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#tactic-canvas{position:absolute;top:0;left:0;width:380px;height:560px;pointer-events:none;z-index:8;border-radius:12px}
+.tactic-mode #tactic-canvas{pointer-events:all}
+.view{display:none}.view.active{display:block}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:2px}
+.loading-overlay{position:fixed;inset:0;background:#0b1520;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-logo{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:4px;color:var(--accent)}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--panel3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">⚽ TACTICBOARD</div>
+  <div class="loading-spinner"></div>
+  <div style="font-size:13px;color:var(--text-muted)">서버 연결 중...</div>
+</div>
+
+<div class="app" id="app" style="opacity:0;transition:opacity .4s">
+  <div class="topbar">
+    <div class="logo">⚽ TACTIC<span>BOARD</span></div>
+    <div class="sync-badge">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">연결 중</span>
+    </div>
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchView('formation')">📋 포메이션</button>
+      <button class="tab-btn" onclick="switchView('tactics')">🎯 전술판</button>
+      <button class="tab-btn" onclick="switchView('history')">📅 기록</button>
+    </div>
+  </div>
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="view active" id="view-formation-left">
+      <div class="section">
+        <div class="panel-title">선수 등록</div>
+        <div class="row">
+          <input id="inp-num" type="number" placeholder="번호" style="width:70px" min="1" max="99">
+          <input id="inp-name" type="text" placeholder="이름">
+        </div>
+        <div class="row">
+          <select id="inp-pos">
+            <option value="GK">GK — 골키퍼</option><option value="CB">CB — 센터백</option>
+            <option value="LB">LB — 왼쪽 수비</option><option value="RB">RB — 오른쪽 수비</option>
+            <option value="CDM">CDM — 수비형 미드</option><option value="CM">CM — 센터 미드</option>
+            <option value="CAM">CAM — 공격형 미드</option><option value="LM">LM — 왼쪽 미드</option>
+            <option value="RM">RM — 오른쪽 미드</option><option value="LW">LW — 왼쪽 윙</option>
+            <option value="RW">RW — 오른쪽 윙</option><option value="CF">CF — 센터포워드</option>
+            <option value="ST">ST — 스트라이커</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="inp-merc" style="width:auto;accent-color:var(--accent2)">
+          <span style="font-size:12px;color:var(--text-dim)">용병 (Mercenary)</span>
+        </label>
+        <button class="btn btn-accent" onclick="addPlayer()">+ 선수 추가</button>
+      </div>
+      <div class="section">
+        <div class="panel-title">선수 목록 (<span id="player-count">0</span>명)</div>
+        <div id="player-list"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-tactics-left">
+      <div class="section">
+        <div class="panel-title">그리기 도구</div>
+        <div class="tactic-tools">
+          <button class="tool-btn active" id="tool-run" onclick="setTool('run')">🏃 침투</button>
+          <button class="tool-btn" id="tool-pass" onclick="setTool('pass')">⚡ 패스</button>
+          <button class="tool-btn" id="tool-support" onclick="setTool('support')">🔄 지원</button>
+          <button class="tool-btn" id="tool-press" onclick="setTool('press')">⚠️ 압박</button>
+          <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">🗑 지우개</button>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>화살표 두께</label>
+          <input type="range" min="1" max="5" value="2" id="arrow-width" style="width:100%">
+        </div>
+        <button class="btn btn-ghost" style="margin-bottom:6px" onclick="clearArrows()">전체 화살표 삭제</button>
+        <button class="btn btn-accent" onclick="saveTacticPrompt()">현재 전술 저장</button>
+      </div>
+      <div class="section">
+        <div class="panel-title">화살표 목록</div>
+        <div id="arrow-list" class="arrow-list"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-history-left">
+      <div class="section">
+        <div class="panel-title">새 기록 저장</div>
+        <div style="margin-bottom:8px"><label>날짜</label><input type="date" id="hist-date"></div>
+        <div style="margin-bottom:8px"><label>제목</label><input type="text" id="hist-title-inp" placeholder="예: vs 레알마드리드 (홈)"></div>
+        <div style="margin-bottom:8px"><label>메모</label><input type="text" id="hist-memo" placeholder="간단한 메모"></div>
+        <button class="btn btn-accent" onclick="saveHistory()">💾 서버에 저장</button>
+      </div>
+      <div class="section">
+        <div class="panel-title">기록 목록</div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center" id="center-area">
+    <div class="field-wrap" id="field-wrap">
+      <svg class="field-svg" viewBox="0 0 380 560" id="field-svg">
+        <defs>
+          <pattern id="grass" patternUnits="userSpaceOnUse" width="20" height="20">
+            <rect width="20" height="20" fill="#1e5c38"/>
+            <rect width="10" height="20" fill="#185030"/>
+          </pattern>
+          <marker id="arrowRun" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f9c74f"/></marker>
+          <marker id="arrowPass" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4cc9f0"/></marker>
+          <marker id="arrowSupport" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#80ffdb"/></marker>
+          <marker id="arrowPress" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e63946"/></marker>
+        </defs>
+        <rect width="380" height="560" fill="url(#grass)" rx="10"/>
+        <rect x="20" y="20" width="340" height="520" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" rx="2"/>
+        <line x1="20" y1="280" x2="360" y2="280" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <circle cx="190" cy="280" r="50" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <circle cx="190" cy="280" r="3" fill="rgba(255,255,255,0.7)"/>
+        <rect x="90" y="20" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="140" y="20" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <circle cx="190" cy="75" r="3" fill="rgba(255,255,255,0.7)"/>
+        <path d="M140 110 A50 50 0 0 1 240 110" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="90" y="450" width="200" height="90" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="140" y="500" width="100" height="40" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <circle cx="190" cy="487" r="3" fill="rgba(255,255,255,0.7)"/>
+        <path d="M140 450 A50 50 0 0 0 240 450" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="160" y="14" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <rect x="160" y="536" width="60" height="10" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <path d="M20 30 A10 10 0 0 1 30 20" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <path d="M350 20 A10 10 0 0 1 360 30" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <path d="M360 530 A10 10 0 0 1 350 540" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <path d="M30 540 A10 10 0 0 1 20 530" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+        <g id="arrows-layer"></g>
+      </svg>
+      <canvas id="tactic-canvas" width="380" height="560"></canvas>
+      <div id="field-players" style="position:absolute;inset:0;pointer-events:none"></div>
+      <div id="slot-overlay" style="position:absolute;inset:0;pointer-events:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="view active" id="view-formation-right">
+      <div class="section">
+        <div class="panel-title">포메이션</div>
+        <div class="formation-grid">
+          <button class="f-btn active" onclick="setFormation('4-3-3')">4-3-3</button>
+          <button class="f-btn" onclick="setFormation('4-4-2')">4-4-2</button>
+          <button class="f-btn" onclick="setFormation('4-2-3-1')">4-2-3-1</button>
+          <button class="f-btn" onclick="setFormation('3-5-2')">3-5-2</button>
+          <button class="f-btn" onclick="setFormation('5-3-2')">5-3-2</button>
+          <button class="f-btn" onclick="setFormation('3-4-3')">3-4-3</button>
+          <button class="f-btn" onclick="setFormation('4-1-4-1')">4-1-4-1</button>
+          <button class="f-btn" onclick="setFormation('5-4-1')">5-4-1</button>
+          <button class="f-btn" onclick="setFormation('4-3-2-1')">4-3-2-1</button>
+        </div>
+        <button class="btn btn-ghost" onclick="clearField()" style="margin-bottom:6px">🗑 배치 초기화</button>
+        <button class="btn btn-accent" onclick="autoArrange()">✨ 자동 배치</button>
+      </div>
+      <div class="section">
+        <div class="panel-title">배치된 선수</div>
+        <div id="placed-list" style="font-size:12px;color:var(--text-dim)">슬롯에 선수를 배치하세요.</div>
+      </div>
+      <div class="section">
+        <div class="panel-title">팀 컬러</div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label>팀 색상</label><input type="color" id="team-color" value="#e63946" style="height:36px;cursor:pointer;border-radius:8px;padding:2px"></div>
+          <div style="flex:1"><label>GK 색상</label><input type="color" id="gk-color" value="#f9c74f" style="height:36px;cursor:pointer;border-radius:8px;padding:2px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-tactics-right">
+      <div class="section">
+        <div class="panel-title">전술 안내</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.8;background:var(--panel3);border-radius:8px;padding:12px;border:1px solid var(--border)">
+          <div style="margin-bottom:8px;font-weight:600;color:var(--text)">사용 방법</div>
+          ① 도구 선택<br>② 필드에서 드래그<br>③ 자동으로 팀원들과 공유됨<br>
+          <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+            <span style="display:inline-block;width:14px;height:3px;background:#f9c74f;margin-right:6px;vertical-align:middle"></span>침투<br>
+            <span style="display:inline-block;width:14px;height:3px;background:#4cc9f0;margin-right:6px;vertical-align:middle;margin-top:4px"></span>패스<br>
+            <span style="display:inline-block;width:14px;height:3px;background:#80ffdb;margin-right:6px;vertical-align:middle;margin-top:4px"></span>지원<br>
+            <span style="display:inline-block;width:14px;height:3px;background:#e63946;margin-right:6px;vertical-align:middle;margin-top:4px"></span>압박
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="panel-title">전술 메모</div>
+        <textarea id="tactic-memo" placeholder="전술 설명을 입력하세요..." style="min-height:100px;resize:vertical"></textarea>
+      </div>
+    </div>
+
+    <div class="view" id="view-history-right">
+      <div class="section">
+        <div class="panel-title">기록 상세</div>
+        <div id="hist-detail" style="font-size:12px;color:var(--text-dim)">기록을 선택하면 상세 정보가 표시됩니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">선수 수정</div>
+    <input type="hidden" id="edit-id">
+    <div class="row">
+      <div style="flex:0 0 70px"><label>번호</label><input id="edit-num" type="number" min="1" max="99"></div>
+      <div style="flex:1"><label>이름</label><input id="edit-name" type="text"></div>
+    </div>
+    <div style="margin-bottom:8px"><label>포지션</label>
+      <select id="edit-pos">
+        <option value="GK">GK</option><option value="CB">CB</option><option value="LB">LB</option>
+        <option value="RB">RB</option><option value="CDM">CDM</option><option value="CM">CM</option>
+        <option value="CAM">CAM</option><option value="LM">LM</option><option value="RM">RM</option>
+        <option value="LW">LW</option><option value="RW">RW</option><option value="CF">CF</option><option value="ST">ST</option>
+      </select>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:12px">
+      <input type="checkbox" id="edit-merc" style="width:auto;accent-color:var(--accent2)">
+      <span style="font-size:12px;color:var(--text-dim)">용병</span>
+    </label>
+    <div class="modal-footer">
+      <button class="btn btn-accent" style="flex:1" onclick="saveEdit()">저장</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-edit')">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-assign">
+  <div class="modal">
+    <div class="modal-title">선수 배치</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px" id="assign-slot-label"></div>
+    <div id="assign-player-list" style="max-height:280px;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-assign')">취소</button>
+      <button class="btn btn-danger btn-sm" onclick="removeSlotPlayer()">배치 제거</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// SUPABASE INIT
+// ══════════════════════════════════════════
+const SUPA_URL='https://zywdfohfhrssbnjndnwb.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5d2Rmb2hmaHJzc2Juam5kbndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODA1NjQsImV4cCI6MjA5MjQ1NjU2NH0.97ZQJQrIRZrpnkCy4NYd2EBCPe1UM7yu5tmsV9EXsQY';
+const {createClient}=supabase;
+const sb=createClient(SUPA_URL,SUPA_KEY);
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let players=[];
+let fieldPlacement={};
+let currentFormation='4-3-3';
+let historyList=[];
+let teamColor='#e63946';
+let gkColor='#f9c74f';
+let arrows=[];
+let currentView='formation';
+let currentTool='run';
+let assigningSlot=null;
+let draggingPlayerIdx=null;
+let isDrawing=false,drawStart=null,drawEnd=null;
+let syncTimeout=null;
+let realtimeChannel=null;
+
+// ══════════════════════════════════════════
+// FORMATIONS
+// ══════════════════════════════════════════
+const FORMATIONS={
+  '4-3-3':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:18,y:75},{id:'CB1',pos:'CB',x:37,y:75},{id:'CB2',pos:'CB',x:63,y:75},{id:'RB',pos:'RB',x:82,y:75},
+    {id:'CM1',pos:'CM',x:30,y:55},{id:'CM2',pos:'CM',x:50,y:52},{id:'CM3',pos:'CM',x:70,y:55},
+    {id:'LW',pos:'LW',x:18,y:32},{id:'ST',pos:'ST',x:50,y:25},{id:'RW',pos:'RW',x:82,y:32}
+  ],
+  '4-4-2':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:18,y:75},{id:'CB1',pos:'CB',x:37,y:75},{id:'CB2',pos:'CB',x:63,y:75},{id:'RB',pos:'RB',x:82,y:75},
+    {id:'LM',pos:'LM',x:15,y:54},{id:'CM1',pos:'CM',x:38,y:54},{id:'CM2',pos:'CM',x:62,y:54},{id:'RM',pos:'RM',x:85,y:54},
+    {id:'ST1',pos:'ST',x:37,y:25},{id:'ST2',pos:'ST',x:63,y:25}
+  ],
+  '4-2-3-1':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:18,y:78},{id:'CB1',pos:'CB',x:37,y:78},{id:'CB2',pos:'CB',x:63,y:78},{id:'RB',pos:'RB',x:82,y:78},
+    {id:'CDM1',pos:'CDM',x:37,y:62},{id:'CDM2',pos:'CDM',x:63,y:62},
+    {id:'LM',pos:'LM',x:18,y:44},{id:'CAM',pos:'CAM',x:50,y:44},{id:'RM',pos:'RM',x:82,y:44},
+    {id:'ST',pos:'ST',x:50,y:24}
+  ],
+  '3-5-2':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'CB1',pos:'CB',x:30,y:78},{id:'CB2',pos:'CB',x:50,y:78},{id:'CB3',pos:'CB',x:70,y:78},
+    {id:'LM',pos:'LM',x:10,y:56},{id:'CM1',pos:'CM',x:30,y:56},{id:'CM2',pos:'CM',x:50,y:56},{id:'CM3',pos:'CM',x:70,y:56},{id:'RM',pos:'RM',x:90,y:56},
+    {id:'ST1',pos:'ST',x:37,y:24},{id:'ST2',pos:'ST',x:63,y:24}
+  ],
+  '5-3-2':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:10,y:77},{id:'CB1',pos:'CB',x:30,y:77},{id:'CB2',pos:'CB',x:50,y:77},{id:'CB3',pos:'CB',x:70,y:77},{id:'RB',pos:'RB',x:90,y:77},
+    {id:'CM1',pos:'CM',x:28,y:54},{id:'CM2',pos:'CM',x:50,y:54},{id:'CM3',pos:'CM',x:72,y:54},
+    {id:'ST1',pos:'ST',x:37,y:24},{id:'ST2',pos:'ST',x:63,y:24}
+  ],
+  '3-4-3':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'CB1',pos:'CB',x:30,y:78},{id:'CB2',pos:'CB',x:50,y:78},{id:'CB3',pos:'CB',x:70,y:78},
+    {id:'LM',pos:'LM',x:15,y:58},{id:'CM1',pos:'CM',x:38,y:58},{id:'CM2',pos:'CM',x:62,y:58},{id:'RM',pos:'RM',x:85,y:58},
+    {id:'LW',pos:'LW',x:18,y:28},{id:'ST',pos:'ST',x:50,y:24},{id:'RW',pos:'RW',x:82,y:28}
+  ],
+  '4-1-4-1':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:18,y:78},{id:'CB1',pos:'CB',x:37,y:78},{id:'CB2',pos:'CB',x:63,y:78},{id:'RB',pos:'RB',x:82,y:78},
+    {id:'CDM',pos:'CDM',x:50,y:65},
+    {id:'LM',pos:'LM',x:12,y:50},{id:'CM1',pos:'CM',x:34,y:50},{id:'CM2',pos:'CM',x:66,y:50},{id:'RM',pos:'RM',x:88,y:50},
+    {id:'ST',pos:'ST',x:50,y:24}
+  ],
+  '5-4-1':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:8,y:78},{id:'CB1',pos:'CB',x:27,y:78},{id:'CB2',pos:'CB',x:50,y:78},{id:'CB3',pos:'CB',x:73,y:78},{id:'RB',pos:'RB',x:92,y:78},
+    {id:'LM',pos:'LM',x:14,y:55},{id:'CM1',pos:'CM',x:36,y:55},{id:'CM2',pos:'CM',x:64,y:55},{id:'RM',pos:'RM',x:86,y:55},
+    {id:'ST',pos:'ST',x:50,y:24}
+  ],
+  '4-3-2-1':[
+    {id:'GK',pos:'GK',x:50,y:92},{id:'LB',pos:'LB',x:18,y:78},{id:'CB1',pos:'CB',x:37,y:78},{id:'CB2',pos:'CB',x:63,y:78},{id:'RB',pos:'RB',x:82,y:78},
+    {id:'CM1',pos:'CM',x:25,y:60},{id:'CM2',pos:'CM',x:50,y:60},{id:'CM3',pos:'CM',x:75,y:60},
+    {id:'CAM1',pos:'CAM',x:35,y:40},{id:'CAM2',pos:'CAM',x:65,y:40},
+    {id:'ST',pos:'ST',x:50,y:22}
+  ]
+};
+
+const AVATAR_COLORS=['#e63946','#f3722c','#4361ee','#3a86ff','#06d6a0','#8338ec','#f77f00','#4cc9f0'];
+const TOOL_COLORS={run:'#f9c74f',pass:'#4cc9f0',support:'#80ffdb',press:'#e63946'};
+const TOOL_LABELS={run:'침투',pass:'패스',support:'지원',press:'압박'};
+function avatarBg(idx){return AVATAR_COLORS[idx%AVATAR_COLORS.length]}
+function initials(name){return name.slice(0,2).toUpperCase()}
+function getPlayerColor(p){return p.pos==='GK'?gkColor:teamColor}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init(){
+  try{
+    await loadPlayers();
+    await loadCurrentState();
+    setupRealtime();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.opacity='1';
+    setSyncStatus(true);
+    document.querySelector('.f-btn').classList.remove('active');
+    document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
+    document.getElementById('team-color').addEventListener('input',e=>{teamColor=e.target.value;renderField();pushState()});
+    document.getElementById('gk-color').addEventListener('input',e=>{gkColor=e.target.value;renderField();pushState()});
+    document.getElementById('hist-date').value=new Date().toISOString().split('T')[0];
+    renderPlayerList();renderField();renderArrowList();
+  }catch(e){
+    console.error(e);
+    document.getElementById('loading').innerHTML='<div style="color:#e63946;font-size:18px">연결 실패. Supabase 설정을 확인하세요.</div>';
+  }
+}
+
+// ══════════════════════════════════════════
+// SUPABASE CRUD — PLAYERS
+// ══════════════════════════════════════════
+async function loadPlayers(){
+  const{data,error}=await sb.from('players').select('*').order('created_at');
+  if(error) throw error;
+  players=data||[];
+}
+
+async function addPlayer(){
+  const num=+document.getElementById('inp-num').value||(players.length+1);
+  const name=document.getElementById('inp-name').value.trim();
+  const pos=document.getElementById('inp-pos').value;
+  const merc=document.getElementById('inp-merc').checked;
+  if(!name){toast('이름을 입력하세요');return}
+  const{data,error}=await sb.from('players').insert({num,name,pos,merc}).select().single();
+  if(error){toast('오류: '+error.message);return}
+  players.push(data);
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-num').value='';
+  document.getElementById('inp-merc').checked=false;
+  renderPlayerList();toast(`${name} 등록 완료!`);
+}
+
+async function deletePlayer(id){
+  const p=players.find(x=>x.id===id);
+  // Remove from placement
+  const newPlacement={};
+  Object.keys(fieldPlacement).forEach(k=>{if(fieldPlacement[k]!==id)newPlacement[k]=fieldPlacement[k]});
+  fieldPlacement=newPlacement;
+  await sb.from('players').delete().eq('id',id);
+  players=players.filter(x=>x.id!==id);
+  renderPlayerList();renderField();pushState();toast(`${p?.name||''} 삭제됨`);
+}
+
+function openEdit(id){
+  const p=players.find(x=>x.id===id);if(!p)return;
+  document.getElementById('edit-id').value=id;
+  document.getElementById('edit-num').value=p.num;
+  document.getElementById('edit-name').value=p.name;
+  document.getElementById('edit-pos').value=p.pos;
+  document.getElementById('edit-merc').checked=!!p.merc;
+  document.getElementById('modal-edit').classList.add('show');
+}
+
+async function saveEdit(){
+  const id=document.getElementById('edit-id').value;
+  const updates={num:+document.getElementById('edit-num').value,name:document.getElementById('edit-name').value.trim(),pos:document.getElementById('edit-pos').value,merc:document.getElementById('edit-merc').checked};
+  const{error}=await sb.from('players').update(updates).eq('id',id);
+  if(error){toast('오류: '+error.message);return}
+  const idx=players.findIndex(x=>x.id===id);
+  if(idx!==-1) players[idx]={...players[idx],...updates};
+  closeModal('modal-edit');renderPlayerList();renderField();toast('수정 완료!');
+}
+
+// ══════════════════════════════════════════
+// SUPABASE — CURRENT STATE (실시간 공유)
+// ══════════════════════════════════════════
+async function loadCurrentState(){
+  const{data,error}=await sb.from('current_state').select('*').eq('id',1).single();
+  if(error||!data) return;
+  currentFormation=data.formation||'4-3-3';
+  fieldPlacement=data.placement||{};
+  arrows=data.arrows||[];
+  teamColor=data.team_color||'#e63946';
+  gkColor=data.gk_color||'#f9c74f';
+  document.getElementById('team-color').value=teamColor;
+  document.getElementById('gk-color').value=gkColor;
+}
+
+async function pushState(){
+  clearTimeout(syncTimeout);
+  syncTimeout=setTimeout(async()=>{
+    const{error}=await sb.from('current_state').update({
+      formation:currentFormation,placement:fieldPlacement,
+      arrows,team_color:teamColor,gk_color:gkColor,
+      updated_at:new Date().toISOString()
+    }).eq('id',1);
+    if(!error) setSyncStatus(true);
+  },600);
+}
+
+function setupRealtime(){
+  realtimeChannel=sb.channel('current_state_changes')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'current_state'},payload=>{
+      const d=payload.new;
+      currentFormation=d.formation||currentFormation;
+      fieldPlacement=d.placement||{};
+      arrows=d.arrows||[];
+      teamColor=d.team_color||teamColor;
+      gkColor=d.gk_color||gkColor;
+      document.getElementById('team-color').value=teamColor;
+      document.getElementById('gk-color').value=gkColor;
+      document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
+      renderField();renderArrowList();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'players'},async()=>{
+      await loadPlayers();renderPlayerList();renderField();
+    })
+    .subscribe(status=>{
+      setSyncStatus(status==='SUBSCRIBED');
+    });
+}
+
+function setSyncStatus(ok){
+  document.getElementById('sync-dot').classList.toggle('live',ok);
+  document.getElementById('sync-label').textContent=ok?'실시간 연결됨':'연결 끊김';
+}
+
+// ══════════════════════════════════════════
+// SUPABASE — HISTORY
+// ══════════════════════════════════════════
+async function saveHistory(){
+  const date=document.getElementById('hist-date').value;
+  const title=document.getElementById('hist-title-inp').value.trim()||'무제 경기';
+  const memo=document.getElementById('hist-memo').value.trim();
+  const tacticMemo=document.getElementById('tactic-memo').value;
+  if(!date){toast('날짜를 선택하세요');return}
+  const{error}=await sb.from('formations').insert({
+    date,title,memo,formation:currentFormation,
+    placement:fieldPlacement,arrows,
+    team_color:teamColor,gk_color:gkColor,tactic_memo:tacticMemo
+  });
+  if(error){toast('저장 오류: '+error.message);return}
+  toast('기록 저장 완료!');
+  await loadHistory();
+}
+
+async function loadHistory(){
+  const{data}=await sb.from('formations').select('*').order('created_at',{ascending:false});
+  historyList=data||[];renderHistoryList();
+}
+
+async function deleteHistory(id){
+  await sb.from('formations').delete().eq('id',id);
+  historyList=historyList.filter(h=>h.id!==id);
+  renderHistoryList();toast('삭제됨');
+}
+
+function loadHistoryItem(h){
+  currentFormation=h.formation;
+  fieldPlacement=h.placement||{};
+  arrows=h.arrows||[];
+  teamColor=h.team_color||teamColor;
+  gkColor=h.gk_color||gkColor;
+  if(h.tactic_memo) document.getElementById('tactic-memo').value=h.tactic_memo;
+  document.getElementById('team-color').value=teamColor;
+  document.getElementById('gk-color').value=gkColor;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===currentFormation));
+  renderField();renderArrowList();pushState();switchView('formation');toast('불러오기 완료!');
+}
+
+let selectedHistId=null;
+function renderHistoryList(){
+  const el=document.getElementById('history-list');
+  if(!historyList.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">저장된 기록이 없습니다</div>';return}
+  el.innerHTML=historyList.map(h=>`
+    <div class="history-item${h.id===selectedHistId?' active':''}" onclick="selectHist('${h.id}')">
+      <div class="hist-date">${h.date}</div>
+      <div class="hist-title">${h.title}</div>
+      <div class="hist-form">${h.formation}</div>
+      ${h.memo?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${h.memo}</div>`:''}
+      <div class="hist-actions">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();loadHistoryItem(historyList.find(x=>x.id==='${h.id}'))">불러오기</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteHistory('${h.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectHist(id){
+  selectedHistId=id;
+  const h=historyList.find(x=>x.id===id);if(!h)return;
+  document.getElementById('hist-detail').innerHTML=`
+    <div style="background:var(--panel3);border-radius:8px;padding:12px;border:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent)">${h.formation}</div>
+      <div style="font-size:14px;font-weight:600;margin:4px 0">${h.title}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${h.date}</div>
+      ${h.memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px">${h.memo}</div>`:''}
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)">
+        배치 ${Object.keys(h.placement||{}).length}명 / 화살표 ${(h.arrows||[]).length}개
+      </div>
+      ${h.tactic_memo?`<div style="font-size:12px;color:var(--text-dim);margin-top:6px;padding:8px;background:var(--panel2);border-radius:6px">${h.tactic_memo}</div>`:''}
+    </div>
+  `;
+  renderHistoryList();
+}
+
+// ══════════════════════════════════════════
+// VIEW
+// ══════════════════════════════════════════
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['formation','tactics','history'][i]===v));
+  ['formation','tactics','history'].forEach(n=>{
+    document.getElementById('view-'+n+'-left').classList.toggle('active',n===v);
+    document.getElementById('view-'+n+'-right').classList.toggle('active',n===v);
+  });
+  document.getElementById('field-wrap').classList.toggle('tactic-mode',v==='tactics');
+  if(v==='history') loadHistory();
+}
+
+// ══════════════════════════════════════════
+// FORMATION
+// ══════════════════════════════════════════
+function setFormation(f){
+  currentFormation=f;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.toggle('active',b.textContent===f));
+  fieldPlacement={};renderField();pushState();
+}
+
+function clearField(){fieldPlacement={};renderField();pushState();toast('배치 초기화')}
+
+function autoArrange(){
+  const slots=FORMATIONS[currentFormation];
+  fieldPlacement={};
+  const posOrder=['GK','CB','LB','RB','CDM','CM','LM','RM','CAM','LW','RW','CF','ST'];
+  const sorted=[...players].map((p,i)=>({p,i})).sort((a,b)=>posOrder.indexOf(a.p.pos)-posOrder.indexOf(b.p.pos));
+  const avail=[...sorted];
+  slots.forEach(slot=>{
+    let match=avail.findIndex(({p})=>p.pos===slot.pos);
+    if(match===-1) match=0;
+    if(avail.length){fieldPlacement[slot.id]=avail[match].p.id;avail.splice(match,1)}
+  });
+  renderField();pushState();toast('자동 배치 완료!');
+}
+
+// ══════════════════════════════════════════
+// DRAG
+// ══════════════════════════════════════════
+let draggingPlayerId=null;
+function onPlayerDragStart(e,id){draggingPlayerId=id;e.dataTransfer.effectAllowed='copy'}
+
+// ══════════════════════════════════════════
+// FIELD RENDER
+// ══════════════════════════════════════════
+function renderField(){
+  const slots=FORMATIONS[currentFormation];
+  const W=380,H=560;
+  const slotEl=document.getElementById('slot-overlay');
+  const playerEl=document.getElementById('field-players');
+  slotEl.innerHTML='';playerEl.innerHTML='';
+
+  slots.forEach(slot=>{
+    const px=slot.x/100*W,py=slot.y/100*H;
+    const placedId=fieldPlacement[slot.id];
+    const p=placedId?players.find(x=>x.id===placedId):null;
+    if(!p){
+      const div=document.createElement('div');
+      div.className='fp-slot';div.id='slot-'+slot.id;
+      div.style.cssText=`left:${px}px;top:${py}px;pointer-events:all`;
+      div.innerHTML=`<div class="slot-circle">+</div><div style="font-size:9px;color:rgba(255,255,255,0.3);text-align:center;margin-top:2px">${slot.pos}</div>`;
+      div.ondragover=e=>{e.preventDefault();div.classList.add('over')};
+      div.ondragleave=()=>div.classList.remove('over');
+      div.ondrop=e=>{e.preventDefault();div.classList.remove('over');if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}};
+      div.onclick=()=>openAssignModal(slot.id);
+      slotEl.appendChild(div);
+    } else {
+      const color=getPlayerColor(p);
+      const div=document.createElement('div');
+      div.className='field-player';
+      div.style.cssText=`left:${px}px;top:${py}px;pointer-events:all`;
+      div.innerHTML=`
+        <div class="fp-circle" style="background:${color}22;border-color:${color}88">
+          <span style="font-size:11px;font-weight:800;color:${color}">${p.num}</span>
+          ${p.merc?`<div style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:var(--accent2);border-radius:50%;border:1px solid var(--panel)"></div>`:''}
+        </div>
+        <div class="fp-name">${p.name}</div>
+      `;
+      div.ondragover=e=>e.preventDefault();
+      div.ondrop=e=>{e.preventDefault();if(draggingPlayerId){fieldPlacement[slot.id]=draggingPlayerId;draggingPlayerId=null;renderField();pushState()}};
+      div.onclick=()=>openAssignModal(slot.id);
+      playerEl.appendChild(div);
+    }
+  });
+
+  // Placed list
+  const placed=slots.filter(s=>fieldPlacement[s.id]);
+  const placedEl=document.getElementById('placed-list');
+  if(!placed.length){placedEl.innerHTML='<span style="color:var(--text-dim)">슬롯에 선수를 배치하세요.</span>'}
+  else{
+    placedEl.innerHTML=placed.map(s=>{
+      const p=players.find(x=>x.id===fieldPlacement[s.id]);if(!p)return'';
+      const c=getPlayerColor(p);
+      return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${c};min-width:30px">#${p.num}</span>
+        <span style="font-size:12px;font-weight:600">${p.name}</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${s.pos}</span>
+      </div>`;
+    }).join('');
+  }
+  renderArrows();
+}
+
+function renderPlayerList(){
+  document.getElementById('player-count').textContent=players.length;
+  const el=document.getElementById('player-list');
+  if(!players.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">선수를 등록하세요</div>';return}
+  el.innerHTML=players.map((p,i)=>`
+    <div class="player-card${p.merc?' mercenary':''}" draggable="true" ondragstart="onPlayerDragStart(event,'${p.id}')">
+      <div class="player-num">${p.num}</div>
+      <div class="player-avatar" style="background:${avatarBg(i)}">${initials(p.name)}</div>
+      <div class="player-info">
+        <div class="player-name">${p.name}${p.merc?` <span class="merc-badge">용병</span>`:''}</div>
+        <div class="player-pos">${p.pos}</div>
+      </div>
+      <div class="card-actions">
+        <button class="icon-btn" onclick="openEdit('${p.id}')">✏️</button>
+        <button class="icon-btn del" onclick="deletePlayer('${p.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// ASSIGN MODAL
+// ══════════════════════════════════════════
+function openAssignModal(slotId){
+  if(currentView==='tactics') return;
+  assigningSlot=slotId;
+  const slot=FORMATIONS[currentFormation].find(s=>s.id===slotId);
+  document.getElementById('assign-slot-label').textContent=`포지션: ${slot.pos} — ${slotId}`;
+  const list=document.getElementById('assign-player-list');
+  if(!players.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">등록된 선수가 없습니다</div>'}
+  else{
+    list.innerHTML=players.map((p,i)=>`
+      <div class="player-card${fieldPlacement[slotId]===p.id?' selected':''}" onclick="assignToSlot('${p.id}')" style="cursor:pointer">
+        <div class="player-num">${p.num}</div>
+        <div class="player-avatar" style="background:${avatarBg(i)}">${initials(p.name)}</div>
+        <div class="player-info"><div class="player-name">${p.name}${p.merc?' <span class="merc-badge">용병</span>':''}</div><div class="player-pos">${p.pos}</div></div>
+        ${fieldPlacement[slotId]===p.id?'<span style="color:var(--accent);font-size:18px">✓</span>':''}
+      </div>
+    `).join('');
+  }
+  document.getElementById('modal-assign').classList.add('show');
+}
+
+function assignToSlot(id){fieldPlacement[assigningSlot]=id;closeModal('modal-assign');renderField();pushState()}
+function removeSlotPlayer(){delete fieldPlacement[assigningSlot];closeModal('modal-assign');renderField();pushState()}
+
+// ══════════════════════════════════════════
+// ARROWS
+// ══════════════════════════════════════════
+function setTool(t){
+  currentTool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tool-'+t).classList.add('active');
+}
+
+const canvas=document.getElementById('tactic-canvas');
+const ctx=canvas.getContext('2d');
+
+canvas.addEventListener('mousedown',e=>{
+  if(currentView!=='tactics'||currentTool==='erase')return;
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  drawStart={x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY};
+  isDrawing=true;drawEnd=null;
+});
+
+canvas.addEventListener('mousemove',e=>{
+  if(!isDrawing)return;
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  drawEnd={x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY};
+  drawPreview();
+});
+
+canvas.addEventListener('mouseup',e=>{
+  if(!isDrawing)return;
+  isDrawing=false;
+  if(!drawEnd){ctx.clearRect(0,0,380,560);return}
+  const dx=drawEnd.x-drawStart.x,dy=drawEnd.y-drawStart.y;
+  if(Math.sqrt(dx*dx+dy*dy)<15){ctx.clearRect(0,0,380,560);return}
+  arrows.push({type:currentTool,x1:drawStart.x,y1:drawStart.y,x2:drawEnd.x,y2:drawEnd.y,w:+document.getElementById('arrow-width').value});
+  drawStart=null;drawEnd=null;ctx.clearRect(0,0,380,560);
+  renderArrows();renderArrowList();pushState();
+});
+
+canvas.addEventListener('click',e=>{
+  if(currentView!=='tactics'||currentTool!=='erase')return;
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  const mx=(e.clientX-r.left)*scaleX,my=(e.clientY-r.top)*scaleY;
+  let removed=false;
+  arrows=arrows.filter(a=>{
+    const d=distToSegment(mx,my,a.x1,a.y1,a.x2,a.y2);
+    if(d<15){removed=true;return false}return true;
+  });
+  if(removed){renderArrows();renderArrowList();pushState();toast('화살표 삭제됨')}
+});
+
+// Touch support
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t=e.touches[0];
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  drawStart={x:(t.clientX-r.left)*scaleX,y:(t.clientY-r.top)*scaleY};
+  isDrawing=true;
+},{passive:false});
+
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(!isDrawing)return;
+  const t=e.touches[0];
+  const r=canvas.getBoundingClientRect();
+  const scaleX=380/r.width,scaleY=560/r.height;
+  drawEnd={x:(t.clientX-r.left)*scaleX,y:(t.clientY-r.top)*scaleY};
+  drawPreview();
+},{passive:false});
+
+canvas.addEventListener('touchend',e=>{
+  if(!isDrawing||!drawEnd){isDrawing=false;ctx.clearRect(0,0,380,560);return}
+  isDrawing=false;
+  const dx=drawEnd.x-drawStart.x,dy=drawEnd.y-drawStart.y;
+  if(Math.sqrt(dx*dx+dy*dy)<15){ctx.clearRect(0,0,380,560);return}
+  arrows.push({type:currentTool,x1:drawStart.x,y1:drawStart.y,x2:drawEnd.x,y2:drawEnd.y,w:+document.getElementById('arrow-width').value});
+  drawStart=null;drawEnd=null;ctx.clearRect(0,0,380,560);
+  renderArrows();renderArrowList();pushState();
+});
+
+function drawPreview(){
+  ctx.clearRect(0,0,380,560);
+  if(!drawStart||!drawEnd)return;
+  const color=TOOL_COLORS[currentTool];
+  ctx.strokeStyle=color;ctx.lineWidth=+document.getElementById('arrow-width').value+1;
+  ctx.setLineDash([6,4]);ctx.globalAlpha=0.7;
+  ctx.beginPath();ctx.moveTo(drawStart.x,drawStart.y);ctx.lineTo(drawEnd.x,drawEnd.y);ctx.stroke();
+  ctx.setLineDash([]);ctx.globalAlpha=1;
+}
+
+function distToSegment(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay;
+  if(dx===0&&dy===0)return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy)));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+
+function renderArrows(){
+  const layer=document.getElementById('arrows-layer');
+  layer.innerHTML=arrows.map(a=>{
+    const color=TOOL_COLORS[a.type];
+    const markerId='arrow'+a.type.charAt(0).toUpperCase()+a.type.slice(1);
+    const dash=a.type==='support'?'stroke-dasharray="8,4"':'';
+    return`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${color}" stroke-width="${a.w||2}" marker-end="url(#${markerId})" opacity="0.85" ${dash}/>`;
+  }).join('');
+}
+
+function renderArrowList(){
+  const el=document.getElementById('arrow-list');
+  if(!arrows.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px">아직 화살표 없음</div>';return}
+  el.innerHTML=arrows.map((a,i)=>`
+    <div class="arrow-item">
+      <div class="arrow-color" style="background:${TOOL_COLORS[a.type]}"></div>
+      <span class="move-type-badge" style="background:${TOOL_COLORS[a.type]}22;color:${TOOL_COLORS[a.type]}">${TOOL_LABELS[a.type]}</span>
+      <span style="color:var(--text-muted)">#${i+1}</span>
+      <button class="icon-btn del" style="margin-left:auto" onclick="removeArrow(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeArrow(i){arrows.splice(i,1);renderArrows();renderArrowList();pushState()}
+function clearArrows(){arrows=[];renderArrows();renderArrowList();pushState();toast('화살표 모두 삭제')}
+function saveTacticPrompt(){switchView('history');setTimeout(()=>toast('날짜·제목 입력 후 저장하세요!'),300)}
+
+// ══════════════════════════════════════════
+// MODAL / TOAST
+// ══════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+init();
+</script>
+</body>
+</html>
